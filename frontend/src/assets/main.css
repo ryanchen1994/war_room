@@ -1,0 +1,212 @@
+@import './base.css';
+
+:root {
+  --primary-color: #2c3e50;
+  --secondary-color: #3498db;
+  --accent-color: #e74c3c;
+  --success-color: #2ecc71;
+  --warning-color: #f39c12;
+  --info-color: #3498db;
+  --danger-color: #e74c3c;
+  --light-color: #ecf0f1;
+  --dark-color: #2c3e50;
+  --border-radius: 8px;
+  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+body {
+  font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  background-color: #f5f7fa;
+  color: var(--dark-color);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+#app {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: var(--dark-color);
+}
+
+.card {
+  background-color: #fff;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.btn {
+  display: inline-block;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+  border: 1px solid transparent;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  border-radius: var(--border-radius);
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: #fff;
+}
+
+.btn-success {
+  background-color: var(--success-color);
+  color: #fff;
+}
+
+.btn-warning {
+  background-color: var(--warning-color);
+  color: #fff;
+}
+
+.btn-danger {
+  background-color: var(--danger-color);
+  color: #fff;
+}
+
+.text-primary { color: var(--primary-color); }
+.text-secondary { color: var(--secondary-color); }
+.text-success { color: var(--success-color); }
+.text-warning { color: var(--warning-color); }
+.text-danger { color: var(--danger-color); }
+
+.bg-primary { background-color: var(--primary-color); }
+.bg-secondary { background-color: var(--secondary-color); }
+.bg-success { background-color: var(--success-color); }
+.bg-warning { background-color: var(--warning-color); }
+.bg-danger { background-color: var(--danger-color); }
+
+.badge {
+  display: inline-block;
+  padding: 0.25em 0.6em;
+  font-size: 75%;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 10rem;
+  color: #fff;
+}
+
+.badge-primary { background-color: var(--primary-color); }
+.badge-secondary { background-color: var(--secondary-color); }
+.badge-success { background-color: var(--success-color); }
+.badge-warning { background-color: var(--warning-color); }
+.badge-danger { background-color: var(--danger-color); }
+
+/* 移除衝突的 #app 樣式定義 */
+
+a {
+  text-decoration: none;
+  color: var(--secondary-color);
+  transition: 0.4s;
+}
+
+a:hover {
+  color: var(--primary-color);
+}
+
+/* 全局響應式設計 - 保留但優化 */
+@media (max-width: 1200px) {
+  /* 確保 dashboard-container 有足夠的高度和適當的布局 */
+  .dashboard-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto auto;
+    gap: 20px;
+    padding: 20px;
+    min-height: calc(100vh - 80px); /* 假設頂部導航高度為 80px */
+  }
+  
+  .progress-section { grid-area: 1 / 1 / 2 / 2; }
+  .chart-section { grid-area: 1 / 2 / 2 / 3; }
+  .map-section { grid-area: 2 / 1 / 3 / 2; }
+  .weekly-report-section { grid-area: 2 / 2 / 3 / 3; }
+  
+  /* 在小屏幕上調整為單列布局 */
+  @media (max-width: 992px) {
+    .dashboard-container {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto auto;
+    }
+    
+    .progress-section { grid-area: 1 / 1 / 2 / 2; }
+    .chart-section { grid-area: 2 / 1 / 3 / 2; }
+    .map-section { grid-area: 3 / 1 / 4 / 2; }
+    .weekly-report-section { grid-area: 4 / 1 / 5 / 2; }
+  }
+  
+  .progress-section { grid-area: 1 / 1 / 2 / 2; }
+  .chart-section { grid-area: 2 / 1 / 3 / 2; }
+  .map-section { grid-area: 3 / 1 / 4 / 2; }
+  .weekly-report-section { grid-area: 4 / 1 / 5 / 2; }
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    gap: 10px;
+    padding: 10px;
+  }
+  
+  .progress-section, .chart-section, .gantt-section, .map-section, .weekly-report-section {
+    min-height: 300px;
+  }
+  
+  .weekly-report-section {
+    min-height: 350px;
+  }
+}
+
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+}
+
+@media (min-width: 1024px) {
+  body {
+    display: flex;
+    place-items: center;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 0 2rem;
+  }
+}
