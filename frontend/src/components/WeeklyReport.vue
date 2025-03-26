@@ -32,18 +32,18 @@
         <div class="progress-summary">
           <div class="summary-item">
             <div class="summary-label">總進度</div>
-            <div class="summary-value">{{ getCurrentProject().progress }}%</div>
+            <div class="summary-value">{{ getCurrentProject()?.progress || 0 }}%</div>
             <div class="progress-bar">
-              <div class="progress-fill" :style="{width: getCurrentProject().progress + '%'}"></div>
+              <div class="progress-fill" :style="{width: (getCurrentProject()?.progress || 0) + '%'}"></div>
             </div>
           </div>
           <div class="summary-item">
             <div class="summary-label">預計完成日</div>
-            <div class="summary-value">{{ formatDate(getCurrentProject().endDate) }}</div>
+            <div class="summary-value">{{ formatDate(getCurrentProject()?.endDate || '') }}</div>
           </div>
           <div class="summary-item">
             <div class="summary-label">實際工作天數</div>
-            <div class="summary-value">{{ getCurrentProject().actualDays }} / {{ getCurrentProject().totalDays }} 天</div>
+            <div class="summary-value">{{ getCurrentProject()?.actualDays || 0 }} / {{ getCurrentProject()?.totalDays || 0 }} 天</div>
           </div>
         </div>
       </div>
@@ -144,6 +144,7 @@ export default {
     const selectedReportType = ref('gantt')
     const selectedProject = ref(null)
     let resizeTimeout = null // 添加這一行
+    let chartInitialized = ref(false) // 添加標記，避免重複初始化
     
     // 模擬數據 - 基於圖片中的資料
     const projects = ref([
@@ -306,15 +307,16 @@ export default {
         return
       }
       
+      // 避免重複創建
       if (ganttChart.value) {
-        ganttChart.value.destroy()
-        ganttChart.value = null
+        console.log('甘特圖已存在，不重複創建')
+        return
       }
       
       // 確保 Canvas 元素已經渲染並且可見
       if (ganttCanvas.value.offsetParent === null) {
         console.warn('甘特圖 Canvas 元素不可見，延遲創建')
-        setTimeout(createGanttChart, 500) // 增加延遲時間
+        setTimeout(createGanttChart, 500)
         return
       }
       
@@ -333,6 +335,8 @@ export default {
           const parentWidth = ganttCanvas.value.parentElement.clientWidth
           const parentHeight = ganttCanvas.value.parentElement.clientHeight || 350
           
+          console.log(`父元素尺寸: ${parentWidth}x${parentHeight}`)
+          
           // 使用 style 屬性設置尺寸
           ganttCanvas.value.style.width = '100%'
           ganttCanvas.value.style.height = '100%'
@@ -343,8 +347,34 @@ export default {
         }
         
         const currentProject = getCurrentProject()
-        if (!currentProject || !currentProject.workItems) {
-          console.error('當前項目或工作項不存在')
+        console.log('當前項目:', currentProject)
+        
+        if (!currentProject || !currentProject.workItems || currentProject.workItems.length === 0) {
+          console.error('當前項目或工作項不存在或為空')
+          // 創建一個空的圖表，顯示無數據
+          ganttChart.value = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: ['無數據'],
+              datasets: [{
+                label: '無可用數據',
+                data: [0],
+                backgroundColor: 'rgba(200, 200, 200, 0.5)'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                title: {
+                  display: true,
+                  text: '無可用數據',
+                  font: { size: 16 }
+                }
+              }
+            }
+          })
+          chartInitialized.value = true // 標記圖表已初始化
           return
         }
         
@@ -373,559 +403,563 @@ export default {
         console.log('準備創建圖表...')
         
         // 創建圖表
-        // 創建圖表
-                ganttChart.value = new Chart(ctx, {
-                  type: 'bar',
-                  data: {
-                    labels: labels,
-                    datasets: [
-                      {
-                        label: '計畫工期',
-                        data: plannedDurations,
-                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1,
-                        borderRadius: 4,
-                        barPercentage: 0.8
-                      },
-                      {
-                        label: '實際工期',
-                        data: actualDurations,
-                        backgroundColor: 'rgba(46, 204, 113, 0.7)',
-                        borderColor: 'rgba(46, 204, 113, 1)',
-                        borderWidth: 1,
-                        borderRadius: 4,
-                        barPercentage: 0.6
-                      }
-                    ]
+        ganttChart.value = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: '計畫工期',
+                data: plannedDurations,
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1,
+                borderRadius: 4,
+                barPercentage: 0.8
+              },
+              {
+                label: '實際工期',
+                data: actualDurations,
+                backgroundColor: 'rgba(46, 204, 113, 0.7)',
+                borderColor: 'rgba(46, 204, 113, 1)',
+                borderWidth: 1,
+                borderRadius: 4,
+                barPercentage: 0.6
+              }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+              duration: 1000,
+              easing: 'easeOutQuad'
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: `${currentProject.name} - 工程進度甘特圖`,
+                font: {
+                  size: 16,
+                  weight: 'bold'
+                }
+              },
+              legend: {
+                position: 'bottom',
+                display: true,
+                onClick: function(e, legendItem, legend) {
+                  const index = legendItem.datasetIndex;
+                  const ci = legend.chart;
+                  
+                  if (ci.isDatasetVisible(index)) {
+                    ci.hide(index);
+                  } else {
+                    ci.show(index);
+                  }
+                  
+                  ci.update();
+                },
+                labels: {
+                  font: {
+                    size: 12
                   },
-                  options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: {
-                      duration: 1000,
-                      easing: 'easeOutQuad'
-                    },
-                    plugins: {
-                      title: {
-                        display: true,
-                        text: `${currentProject.name} - 工程進度甘特圖`,
-                        font: {
-                          size: 16,
-                          weight: 'bold'
-                        }
-                      },
-                      legend: {
-                        position: 'bottom',
-                        display: true,
-                        onClick: function(e, legendItem, legend) {
-                          const index = legendItem.datasetIndex;
-                          const ci = legend.chart;
-                          
-                          if (ci.isDatasetVisible(index)) {
-                            ci.hide(index);
-                          } else {
-                            ci.show(index);
-                          }
-                          
-                          ci.update();
-                        },
-                        labels: {
-                          font: {
-                            size: 12
-                          },
-                          padding: 15,
-                          usePointStyle: true,
-                          pointStyle: 'circle'
-                        }
-                      },
-                      tooltip: {
-                        callbacks: {
-                          label: function(context) {
-                            return context.dataset.label + ': ' + context.raw + ' 天'
-                          },
-                          footer: function(tooltipItems) {
-                            const itemIndex = tooltipItems[0].dataIndex
-                            const workItem = workItems[itemIndex]
-                            return [
-                              `計畫起始: ${formatDate(workItem.plannedStart)}`,
-                              `計畫完成: ${formatDate(workItem.plannedEnd)}`,
-                              `實際起始: ${workItem.actualStart ? formatDate(workItem.actualStart) : '未開始'}`,
-                              `實際完成: ${workItem.actualEnd ? formatDate(workItem.actualEnd) : '進行中'}`,
-                              `進度: ${workItem.progress}%`
-                            ]
-                          }
-                        }
-                      },
-                    },
-                    scales: {
-                      x: {
-                        stacked: false,
-                        title: {
-                          display: true,
-                          text: '工作天數'
-                        }
-                      },
-                      y: {
-                        stacked: false,
-                        title: {
-                          display: true,
-                          text: '工項名稱'
-                        }
-                      }
-                    }
+                  padding: 15,
+                  usePointStyle: true,
+                  pointStyle: 'circle'
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': ' + context.raw + ' 天'
+                  },
+                  footer: function(tooltipItems) {
+                    const itemIndex = tooltipItems[0].dataIndex
+                    const workItem = workItems[itemIndex]
+                    return [
+                      `計畫起始: ${formatDate(workItem.plannedStart)}`,
+                      `計畫完成: ${formatDate(workItem.plannedEnd)}`,
+                      `實際起始: ${workItem.actualStart ? formatDate(workItem.actualStart) : '未開始'}`,
+                      `實際完成: ${workItem.actualEnd ? formatDate(workItem.actualEnd) : '進行中'}`,
+                      `進度: ${workItem.progress}%`
+                    ]
                   }
-                })
-                
-                console.log('甘特圖創建成功')
-              } catch (error) {
-                console.error('創建甘特圖時發生錯誤:', error)
+                }
+              },
+            },
+            scales: {
+              x: {
+                stacked: false,
+                title: {
+                  display: true,
+                  text: '工作天數'
+                }
+              },
+              y: {
+                stacked: false,
+                title: {
+                  display: true,
+                  text: '工項名稱'
+                }
               }
             }
+          }
+        })
+        
+        chartInitialized.value = true // 標記圖表已初始化
+        console.log('甘特圖創建成功')
+      } catch (error) {
+        console.error('創建甘特圖時發生錯誤:', error)
+      }
+    }
+    
+    // 創建水平進度圖
+    const createHorizontalChart = () => {
+      console.log('開始創建水平進度圖...')
+      
+      if (!horizontalCanvas.value) {
+        console.error('水平進度圖 Canvas 元素不存在')
+        return
+      }
+      
+      if (horizontalChart.value) {
+        horizontalChart.value.destroy()
+        horizontalChart.value = null
+      }
+      
+      nextTick(() => {
+        try {
+          // 確保 Canvas 元素已經渲染
+          if (!horizontalCanvas.value) {
+            console.error('水平進度圖 Canvas 元素在 nextTick 中不存在')
+            return
+          }
+          
+          const ctx = horizontalCanvas.value.getContext('2d')
+          
+          if (!ctx) {
+            console.error('無法獲取 Canvas 上下文')
+            return
+          }
+          
+          console.log('成功獲取 Canvas 上下文')
+          
+          // 設置 Canvas 尺寸
+          if (horizontalCanvas.value.parentElement) {
+            const parentWidth = horizontalCanvas.value.parentElement.clientWidth
+            const parentHeight = horizontalCanvas.value.parentElement.clientHeight || 350
             
-            // 創建水平進度圖
-            const createHorizontalChart = () => {
-              console.log('開始創建水平進度圖...')
-              
-              if (!horizontalCanvas.value) {
-                console.error('水平進度圖 Canvas 元素不存在')
-                return
-              }
-              
-              if (horizontalChart.value) {
-                horizontalChart.value.destroy()
-                horizontalChart.value = null
-              }
-              
-              nextTick(() => {
-                try {
-                  // 確保 Canvas 元素已經渲染
-                  if (!horizontalCanvas.value) {
-                    console.error('水平進度圖 Canvas 元素在 nextTick 中不存在')
-                    return
+            console.log(`父元素尺寸: ${parentWidth}x${parentHeight}`)
+            
+            // 使用 style 屬性設置尺寸
+            horizontalCanvas.value.style.width = '100%'
+            horizontalCanvas.value.style.height = '100%'
+            
+            // 設置實際像素尺寸
+            horizontalCanvas.value.width = parentWidth
+            horizontalCanvas.value.height = parentHeight
+          }
+          
+          const currentProject = getCurrentProject()
+          if (!currentProject || !currentProject.operationItems) {
+            console.error('當前項目或操作項不存在')
+            return
+          }
+          
+          const operationItems = currentProject.operationItems
+          console.log('操作項數據:', operationItems)
+          
+          // 準備水平進度圖數據
+          const labels = operationItems.map(item => item.name)
+          const completionRates = operationItems.map(item => item.completionRate)
+          
+          console.log('準備創建圖表...')
+          
+          // 創建進度圖
+          horizontalChart.value = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: '完成率',
+                  data: completionRates,
+                  backgroundColor: 'rgba(46, 204, 113, 0.7)',
+                  borderColor: 'rgba(46, 204, 113, 1)',
+                  borderWidth: 1,
+                  borderRadius: 4,
+                  barPercentage: 0.7
+                }
+              ]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: {
+                duration: 1000,
+                easing: 'easeOutQuad'
+              },
+              plugins: {
+                title: {
+                  display: true,
+                  text: `${currentProject.name} - 作業完成率`,
+                  font: {
+                    size: 16,
+                    weight: 'bold'
                   }
-                  
-                  const ctx = horizontalCanvas.value.getContext('2d')
-                  
-                  if (!ctx) {
-                    console.error('無法獲取 Canvas 上下文')
-                    return
-                  }
-                  
-                  console.log('成功獲取 Canvas 上下文')
-                  
-                  // 設置 Canvas 尺寸
-                  if (horizontalCanvas.value.parentElement) {
-                    const parentWidth = horizontalCanvas.value.parentElement.clientWidth
-                    const parentHeight = horizontalCanvas.value.parentElement.clientHeight || 350
-                    
-                    console.log(`父元素尺寸: ${parentWidth}x${parentHeight}`)
-                    
-                    // 使用 style 屬性設置尺寸
-                    horizontalCanvas.value.style.width = '100%'
-                    horizontalCanvas.value.style.height = '100%'
-                    
-                    // 設置實際像素尺寸
-                    horizontalCanvas.value.width = parentWidth
-                    horizontalCanvas.value.height = parentHeight
-                  }
-                  
-                  const currentProject = getCurrentProject()
-                  if (!currentProject || !currentProject.operationItems) {
-                    console.error('當前項目或操作項不存在')
-                    return
-                  }
-                  
-                  const operationItems = currentProject.operationItems
-                  console.log('操作項數據:', operationItems)
-                  
-                  // 準備水平進度圖數據
-                  const labels = operationItems.map(item => item.name)
-                  const completionRates = operationItems.map(item => item.completionRate)
-                  
-                  console.log('準備創建圖表...')
-                  
-                  // 創建進度圖
-                  horizontalChart.value = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                      labels: labels,
-                      datasets: [
-                        {
-                          label: '完成率',
-                          data: completionRates,
-                          backgroundColor: 'rgba(46, 204, 113, 0.7)',
-                          borderColor: 'rgba(46, 204, 113, 1)',
-                          borderWidth: 1,
-                          borderRadius: 4,
-                          barPercentage: 0.7
-                        }
+                },
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      return '完成率: ' + context.raw + '%'
+                    },
+                    footer: function(tooltipItems) {
+                      const itemIndex = tooltipItems[0].dataIndex
+                      const operationItem = operationItems[itemIndex]
+                      return [
+                        `單位: ${operationItem.unit}`,
+                        `預計數量: ${operationItem.plannedQuantity}`,
+                        `已完成: ${operationItem.completedQuantity}`,
+                        `備註: ${operationItem.notes}`
                       ]
-                    },
-                    options: {
-                      indexAxis: 'y',
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      animation: {
-                        duration: 1000,
-                        easing: 'easeOutQuad'
-                      },
-                      plugins: {
-                        title: {
-                          display: true,
-                          text: `${currentProject.name} - 作業完成率`,
-                          font: {
-                            size: 16,
-                            weight: 'bold'
-                          }
-                        },
-                        legend: {
-                          display: false
-                        },
-                        tooltip: {
-                          callbacks: {
-                            label: function(context) {
-                              return '完成率: ' + context.raw + '%'
-                            },
-                            footer: function(tooltipItems) {
-                              const itemIndex = tooltipItems[0].dataIndex
-                              const operationItem = operationItems[itemIndex]
-                              return [
-                                `單位: ${operationItem.unit}`,
-                                `預計數量: ${operationItem.plannedQuantity}`,
-                                `已完成: ${operationItem.completedQuantity}`,
-                                `備註: ${operationItem.notes}`
-                              ]
-                            }
-                          }
-                        }
-                      },
-                      scales: {
-                        x: {
-                          beginAtZero: true,
-                          max: 100,
-                          title: {
-                            display: true,
-                            text: '完成率 (%)'
-                          }
-                        },
-                        y: {
-                          title: {
-                            display: true,
-                            text: '作業項目'
-                          }
-                        }
-                      }
                     }
-                  })
-                  
-                  console.log('水平進度圖創建成功')
-                } catch (error) {
-                  console.error('創建水平進度圖時發生錯誤:', error)
-                }
-              })
-            }
-            
-            // 處理窗口大小變化
-            const handleResize = () => {
-              try {
-                console.log('處理窗口大小變化...')
-                
-                // 立即更新 canvas 尺寸
-                if (ganttCanvas.value && ganttCanvas.value.parentElement) {
-                  const parentWidth = ganttCanvas.value.parentElement.clientWidth
-                  const parentHeight = ganttCanvas.value.parentElement.clientHeight || 350
-                  
-                  ganttCanvas.value.style.width = '100%'
-                  ganttCanvas.value.style.height = '100%'
-                  ganttCanvas.value.width = parentWidth
-                  ganttCanvas.value.height = parentHeight
-                }
-                
-                if (horizontalCanvas.value && horizontalCanvas.value.parentElement) {
-                  const parentWidth = horizontalCanvas.value.parentElement.clientWidth
-                  const parentHeight = horizontalCanvas.value.parentElement.clientHeight || 350
-                  
-                  horizontalCanvas.value.style.width = '100%'
-                  horizontalCanvas.value.style.height = '100%'
-                  horizontalCanvas.value.width = parentWidth
-                  horizontalCanvas.value.height = parentHeight
-                }
-                
-                // 延遲重新渲染圖表，確保尺寸已更新
-                setTimeout(() => {
-                  if (selectedReportType.value === 'gantt') {
-                    if (ganttChart.value) {
-                      ganttChart.value.destroy();
-                      ganttChart.value = null;
-                    }
-                    createGanttChart();
-                  } else if (selectedReportType.value === 'horizontal') {
-                    if (horizontalChart.value) {
-                      horizontalChart.value.destroy();
-                      horizontalChart.value = null;
-                    }
-                    createHorizontalChart();
                   }
-                }, 300) // 增加延遲時間
-              } catch (error) {
-                console.error('處理窗口大小變化時發生錯誤:', error)
+                }
+              },
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  max: 100,
+                  title: {
+                    display: true,
+                    text: '完成率 (%)'
+                  }
+                },
+                y: {
+                  title: {
+                    display: true,
+                    text: '作業項目'
+                  }
+                }
               }
             }
-            
-            // 監聽報表類型變化
-            watch(selectedReportType, (newValue) => {
-              nextTick(() => {
-                if (newValue === 'gantt') {
-                  createGanttChart()
-                } else if (newValue === 'horizontal') {
-                  createHorizontalChart()
-                }
-              })
-            })
-            
-            // 監聽選擇的專案變化
-            watch(selectedProject, () => {
-              nextTick(() => {
-                if (selectedReportType.value === 'gantt') {
-                  createGanttChart()
-                } else if (selectedReportType.value === 'horizontal') {
-                  createHorizontalChart()
-                }
-              })
-            })
-            
-            // 從API獲取專案數據
-            const fetchProjects = async () => {
-              try {
-                // 實際應用中，這裏應該從API獲取數據
-                // const response = await axios.get('http://localhost:5000/api/weekly-report')
-                // projects.value = response.data
-                
-                // 目前使用模擬數據
-                console.log('使用模擬數據')
-                
-                // 初始化圖表
-                nextTick(() => {
-                  if (selectedReportType.value === 'gantt') {
-                    createGanttChart()
-                  } else if (selectedReportType.value === 'horizontal') {
-                    createHorizontalChart()
-                  }
-                })
-              } catch (error) {
-                console.error('獲取週報數據失敗:', error)
-              }
-            }
-            
-            onMounted(() => {
-              // 延遲初始化，確保DOM已完全渲染
-              setTimeout(() => {
-                fetchProjects()
-                
-                if (window.ResizeObserver) {
-                  resizeObserver.value = new ResizeObserver(() => {
-                    // 使用防抖處理，避免頻繁觸發
-                    if (resizeTimeout) clearTimeout(resizeTimeout)
-                    resizeTimeout = setTimeout(handleResize, 300) // 增加延遲時間
-                  })
-                  
-                  if (ganttCanvas.value && ganttCanvas.value.parentElement) {
-                    resizeObserver.value.observe(ganttCanvas.value.parentElement)
-                  }
-                  
-                  if (horizontalCanvas.value && horizontalCanvas.value.parentElement) {
-                    resizeObserver.value.observe(horizontalCanvas.value.parentElement)
-                  }
-                  
-                  if (horizontalCanvas.value && horizontalCanvas.value.parentElement) {
-                    resizeObserver.value.observe(horizontalCanvas.value.parentElement)
-                  }
-                }
-                
-                window.addEventListener('resize', handleResize)
-                
-                // 手動觸發一次 resize 事件，確保圖表正確渲染
-                setTimeout(handleResize, 300) // 增加延遲時間
-              }, 800) // 增加初始化延遲時間
-            })
-            
-            onBeforeUnmount(() => {
-              if (ganttChart.value) {
-                ganttChart.value.destroy()
-                ganttChart.value = null
-              }
-              
-              if (horizontalChart.value) {
-                horizontalChart.value.destroy()
-                horizontalChart.value = null
-              }
-              
-              if (resizeObserver.value) {
-                resizeObserver.value.disconnect()
-              }
-              
-              window.removeEventListener('resize', handleResize)
-            })
-            
-            return {
-              ganttCanvas,
-              horizontalCanvas,
-              selectedReportType,
-              selectedProject,
-              projects,
-              getCurrentProject,
-              formatDate
-            }
-          }
+          })
+          
+          console.log('水平進度圖創建成功')
+        } catch (error) {
+          console.error('創建水平進度圖時發生錯誤:', error)
         }
-        </script>
+      })
+    }
+    
+    // 處理窗口大小變化
+    const handleResize = () => {
+      try {
+        console.log('處理窗口大小變化...')
         
-        <style scoped>
-        .weekly-report-view {
-          background-color: var(--card-background);
-          border-radius: 10px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-          padding: 20px;
-          height: 100%;
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          box-sizing: border-box;
-          overflow: hidden;
-        }
-        
-        .dashboard-title {
-          color: var(--text-color);
-          font-size: 1.5rem;
-          margin-bottom: 20px;
-          text-align: left;
-          border-bottom: 2px solid var(--border-color);
-          padding-bottom: 10px;
-          flex-shrink: 0;
-        }
-        
-        .report-controls {
-          display: flex;
-          gap: 20px;
-          margin-bottom: 20px;
-          padding: 15px;
-          background-color: var(--card-background);
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-        
-        .filter-group {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        
-        .filter-group label {
-          color: var(--text-color);
-          font-weight: 500;
-          white-space: nowrap;
-        }
-        
-        .filter-group select {
-          padding: 8px 12px;
-          border: 1px solid var(--border-color);
-          border-radius: 6px;
-          background-color: var(--card-background);
-          color: var(--text-color);
-          font-size: 0.9rem;
-          min-width: 150px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-        
-        .filter-group select:hover {
-          border-color: var(--primary-color);
-        }
-        
-        .filter-group select:focus {
-          outline: none;
-          border-color: var(--primary-color);
-          box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-        }
-        
-        .report-container {
-          flex-grow: 1;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-        }
-        
-        .chart-container {
-          flex-grow: 1;
-          position: relative;
-          min-height: 250px;
-          border-radius: 8px;
-          overflow: hidden;
-          background-color: var(--card-background);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-        
-        /* 表格樣式 */
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 15px;
-          background-color: var(--card-background);
-          border-radius: 8px;
-          overflow: hidden;
-        }
-        
-        th, td {
-          padding: 12px 15px;
-          text-align: left;
-          border-bottom: 1px solid var(--border-color);
-        }
-        
-        th {
-          background-color: var(--primary-color);
-          color: white;
-          font-weight: 500;
-        }
-        
-        tr:last-child td {
-          border-bottom: none;
-        }
-        
-        tr:hover {
-          background-color: rgba(0, 0, 0, 0.02);
-        }
-        
-        
-        @media (max-width: 992px) {
-          .progress-summary {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .report-controls {
-            flex-direction: column;
-            align-items: flex-start;
+        // 如果圖表已經初始化，只更新尺寸而不重新創建
+        if (chartInitialized.value) {
+          if (ganttChart.value && selectedReportType.value === 'gantt') {
+            ganttChart.value.resize();
+            return;
           }
           
-          .filter-group {
-            width: 100%;
-            margin-right: 0;
-            margin-bottom: 10px;
-          }
-          
-          .filter-group select {
-            width: 100%;
-          }
-          
-          .progress-summary {
-            grid-template-columns: 1fr;
-          }
-          
-          .chart-container {
-            height: 300px; /* 小螢幕上減少高度 */
+          if (horizontalChart.value && selectedReportType.value === 'horizontal') {
+            horizontalChart.value.resize();
+            return;
           }
         }
-        </style>
+        
+        // 立即更新 canvas 尺寸
+        if (ganttCanvas.value && ganttCanvas.value.parentElement) {
+          const parentWidth = ganttCanvas.value.parentElement.clientWidth
+          const parentHeight = ganttCanvas.value.parentElement.clientHeight || 350
+          
+          ganttCanvas.value.style.width = '100%'
+          ganttCanvas.value.style.height = '100%'
+          ganttCanvas.value.width = parentWidth
+          ganttCanvas.value.height = parentHeight
+        }
+        
+        if (horizontalCanvas.value && horizontalCanvas.value.parentElement) {
+          const parentWidth = horizontalCanvas.value.parentElement.clientWidth
+          const parentHeight = horizontalCanvas.value.parentElement.clientHeight || 350
+          
+          horizontalCanvas.value.style.width = '100%'
+          horizontalCanvas.value.style.height = '100%'
+          horizontalCanvas.value.width = parentWidth
+          horizontalCanvas.value.height = parentHeight
+        }
+      } catch (error) {
+        console.error('處理窗口大小變化時發生錯誤:', error)
+      }
+    }
+    
+    // 監聽報表類型變化
+    watch(selectedReportType, (newValue) => {
+      // 重置圖表初始化狀態
+      chartInitialized.value = false;
+      
+      // 清除現有圖表
+      if (ganttChart.value) {
+        ganttChart.value.destroy();
+        ganttChart.value = null;
+      }
+      
+      if (horizontalChart.value) {
+        horizontalChart.value.destroy();
+        horizontalChart.value = null;
+      }
+      
+      nextTick(() => {
+        if (newValue === 'gantt') {
+          createGanttChart()
+        } else if (newValue === 'horizontal') {
+          createHorizontalChart()
+        }
+      })
+    })
+    
+    // 監聽選擇的專案變化
+    watch(selectedProject, () => {
+      // 重置圖表初始化狀態
+      chartInitialized.value = false;
+      
+      // 清除現有圖表
+      if (ganttChart.value) {
+        ganttChart.value.destroy();
+        ganttChart.value = null;
+      }
+      
+      if (horizontalChart.value) {
+        horizontalChart.value.destroy();
+        horizontalChart.value = null;
+      }
+      
+      nextTick(() => {
+        if (selectedReportType.value === 'gantt') {
+          createGanttChart()
+        } else if (selectedReportType.value === 'horizontal') {
+          createHorizontalChart()
+        }
+      })
+    })
+    
+    // 從API獲取專案數據
+    const fetchProjects = async () => {
+      try {
+        // 實際應用中，這裏應該從API獲取數據
+        // const response = await axios.get('http://localhost:5000/api/weekly-report')
+        // projects.value = response.data
+        
+        // 目前使用模擬數據
+        console.log('使用模擬數據')
+        
+        // 初始化圖表
+        nextTick(() => {
+          if (selectedReportType.value === 'gantt') {
+            createGanttChart()
+          } else if (selectedReportType.value === 'horizontal') {
+            createHorizontalChart()
+          }
+        })
+      } catch (error) {
+        console.error('獲取週報數據失敗:', error)
+      }
+    }
+    
+    onMounted(() => {
+      // 延遲初始化，確保DOM已完全渲染
+      setTimeout(() => {
+        fetchProjects()
+        
+        if (window.ResizeObserver) {
+          resizeObserver.value = new ResizeObserver(() => {
+            // 使用防抖處理，避免頻繁觸發
+            if (resizeTimeout) clearTimeout(resizeTimeout)
+            resizeTimeout = setTimeout(handleResize, 500) // 增加延遲時間
+          })
+          
+          if (ganttCanvas.value && ganttCanvas.value.parentElement) {
+            resizeObserver.value.observe(ganttCanvas.value.parentElement)
+          }
+          
+          if (horizontalCanvas.value && horizontalCanvas.value.parentElement) {
+            resizeObserver.value.observe(horizontalCanvas.value.parentElement)
+          }
+        }
+        
+        window.addEventListener('resize', handleResize)
+        
+        // 手動觸發一次 resize 事件，確保圖表正確渲染
+        // 但不要立即觸發，給予足夠時間讓 DOM 完全渲染
+        setTimeout(handleResize, 1000)
+      }, 1000) // 增加初始化延遲時間
+    })
+    
+    onBeforeUnmount(() => {
+      if (ganttChart.value) {
+        ganttChart.value.destroy()
+        ganttChart.value = null
+      }
+      
+      if (horizontalChart.value) {
+        horizontalChart.value.destroy()
+        horizontalChart.value = null
+      }
+      
+      if (resizeObserver.value) {
+        resizeObserver.value.disconnect()
+      }
+      
+      window.removeEventListener('resize', handleResize)
+    })
+    
+    return {
+      ganttCanvas,
+      horizontalCanvas,
+      selectedReportType,
+      selectedProject,
+      projects,
+      getCurrentProject,
+      formatDate
+    }
+  }
+}
+</script>
+
+<style scoped>
+.weekly-report-view {
+  background-color: var(--card-background);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.dashboard-title {
+  color: var(--text-color);
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  text-align: left;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 10px;
+  flex-shrink: 0;
+}
+.report-controls {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: var(--card-background);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.filter-group label {
+  color: var(--text-color);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.filter-group select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--card-background);
+  color: var(--text-color);
+  font-size: 0.9rem;
+  min-width: 150px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.filter-group select:hover {
+  border-color: var(--primary-color);
+}
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+.report-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chart-container {
+  flex-grow: 1;
+  position: relative;
+  min-height: 250px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--card-background);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* 表格樣式 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  background-color: var(--card-background);
+  border-radius: 8px;
+  overflow: hidden;
+}
+table th, td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+table th {
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 500;
+}
+table tr:last-child td {
+  border-bottom: none;
+}
+table tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+
+@media (max-width: 992px) {
+  .progress-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .report-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .filter-group {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+  .filter-group select {
+    width: 100%;
+  }
+  .progress-summary {
+    grid-template-columns: 1fr;
+  }
+  .chart-container {
+    height: 300px; /* 小螢幕上減少高度 */
+  }
+}
+</style>

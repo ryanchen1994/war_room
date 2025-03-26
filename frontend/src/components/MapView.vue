@@ -404,16 +404,47 @@ export default {
   transform: translateY(-1px);
 }
 
-/* 響應式設計 */
+/* 修改地圖搜尋框位置
+
+我將修改 MapView.vue 的樣式，讓搜尋框在大螢幕上顯示在專案類型的右邊，而在小螢幕上保持在專案類型下方。這樣可以更妥善地利用畫面空間。
+*/
+.map-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: var(--card-background);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  justify-content: space-between; /* 讓元素分散對齊 */
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto; /* 不要伸縮，保持原始大小 */
+}
+
+.search-group {
+  display: flex;
+  flex: 0 1 300px; /* 可以收縮，但最大寬度為300px */
+  max-width: 300px; /* 限制最大寬度 */
+}
+
 @media (max-width: 768px) {
   .map-controls {
     flex-direction: column;
+    align-items: stretch;
     gap: 15px;
   }
   
   .filter-group, .search-group {
     width: 100%;
     max-width: none;
+    flex: 1 1 auto;
   }
   
   .summary-stats {
