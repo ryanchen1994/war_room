@@ -783,8 +783,8 @@ export default {
         </script>
         
         <style scoped>
-        .weekly-report {
-          background-color: #ffffff;
+        .weekly-report-view {
+          background-color: var(--card-background);
           border-radius: 10px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
           padding: 20px;
@@ -793,40 +793,111 @@ export default {
           display: flex;
           flex-direction: column;
           box-sizing: border-box;
-          overflow: hidden; /* 修改為 hidden，防止內容溢出 */
+          overflow: hidden;
+        }
+        
+        .dashboard-title {
+          color: var(--text-color);
+          font-size: 1.5rem;
+          margin-bottom: 20px;
+          text-align: left;
+          border-bottom: 2px solid var(--border-color);
+          padding-bottom: 10px;
+          flex-shrink: 0;
+        }
+        
+        .report-controls {
+          display: flex;
+          gap: 20px;
+          margin-bottom: 20px;
+          padding: 15px;
+          background-color: var(--card-background);
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .filter-group {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        
+        .filter-group label {
+          color: var(--text-color);
+          font-weight: 500;
+          white-space: nowrap;
+        }
+        
+        .filter-group select {
+          padding: 8px 12px;
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          background-color: var(--card-background);
+          color: var(--text-color);
+          font-size: 0.9rem;
+          min-width: 150px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        
+        .filter-group select:hover {
+          border-color: var(--primary-color);
+        }
+        
+        .filter-group select:focus {
+          outline: none;
+          border-color: var(--primary-color);
+          box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
         }
         
         .report-container {
-          flex: 1;
+          flex-grow: 1;
           display: flex;
           flex-direction: column;
-          width: 100%;
-          min-height: 0; /* 確保 flex 子元素不會超出父容器 */
-          overflow: hidden; /* 防止內容溢出 */
+          overflow: hidden;
         }
         
         .chart-container {
+          flex-grow: 1;
           position: relative;
-          width: 100%;
-          height: 350px;
           min-height: 250px;
-          margin-bottom: 20px;
-          background-color: #f9f9f9;
+          border-radius: 8px;
+          overflow: hidden;
+          background-color: var(--card-background);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* 表格樣式 */
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 15px;
+          background-color: var(--card-background);
           border-radius: 8px;
           overflow: hidden;
         }
         
-        .report-details {
-          width: 100%;
-          border-top: 1px solid #eaeaea;
-          padding-top: 15px;
-          overflow-y: auto; /* 允許詳細內容捲動 */
-          flex-grow: 1;
+        th, td {
+          padding: 12px 15px;
+          text-align: left;
+          border-bottom: 1px solid var(--border-color);
         }
         
-        /* 其他樣式保持不變 */
+        th {
+          background-color: var(--primary-color);
+          color: white;
+          font-weight: 500;
+        }
         
-        /* 響應式設計 */
+        tr:last-child td {
+          border-bottom: none;
+        }
+        
+        tr:hover {
+          background-color: rgba(0, 0, 0, 0.02);
+        }
+        
+        
         @media (max-width: 992px) {
           .progress-summary {
             grid-template-columns: repeat(2, 1fr);

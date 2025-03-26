@@ -227,7 +227,7 @@ export default {
 
 <style scoped>
 .map-view {
-  background-color: #ffffff;
+  background-color: var(--card-background);
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: 20px;
@@ -236,7 +236,7 @@ export default {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  overflow: auto; /* 改為 auto，允許內容超出時滾動 */
+  overflow: auto;
 }
 
 .map-container {
@@ -244,22 +244,87 @@ export default {
   width: 100%;
   flex-grow: 1;
   min-height: 250px;
-  max-height: calc(100vh - 350px); /* 限制地圖最大高度 */
+  max-height: calc(100vh - 350px);
   overflow: hidden;
   border-radius: 8px;
   box-sizing: border-box;
-  margin-bottom: 20px; /* 增加與摘要區域的間距 */
+  margin-bottom: 20px;
+}
+
+.dashboard-title {
+  color: var(--text-color);
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  text-align: left;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.filter-group select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--card-background);
+  color: var(--text-color);
+  font-size: 0.9rem;
+  min-width: 150px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.search-input-wrapper input {
+  width: 100%;
+  padding: 8px 12px;
+  padding-right: 70px; /* 增加右側填充，為按鈕留出空間 */
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.search-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: auto; /* 設置為自動寬度 */
+  max-width: 70px; /* 限制最大寬度 */
+  padding: 0 12px;
+  background-color: var(--primary-color);
+  border: none;
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* 防止內容溢出 */
+}
+
+.search-btn i {
+  font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 /* 專案摘要樣式更新 */
 .project-summary {
-  margin-top: 0; /* 修改頂部間距 */
+  margin-top: 0;
   padding: 15px;
-  background-color: var(--card-background, #f8f9fa);
+  background-color: var(--card-background);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  flex-shrink: 0; /* 防止摘要區域被壓縮 */
-  min-height: 120px; /* 確保摘要區域有最小高度 */
+  flex-shrink: 0;
+  min-height: 120px;
 }
 
 .project-summary h3 {

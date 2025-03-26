@@ -46,7 +46,8 @@ export default {
     ProgressDashboard,
     ChartView,
     MapView,
-    ProjectGanttChart
+    ProjectGanttChart,
+    WeeklyReport  // 添加 WeeklyReport 組件
   },
   setup() {
     const currentDate = ref('')
@@ -140,6 +141,11 @@ body {
 .dashboard-container {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
+  grid-template-areas: 
+    "progress progress progress progress progress progress chart chart chart chart chart chart"
+    "gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt"
+    "map map map map map map map map map map map map"
+    "weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly";
   gap: 20px;
   padding: 20px;
   width: 100%;
@@ -150,73 +156,53 @@ body {
 }
 
 .progress-section {
-  grid-column: span 6;
+  grid-area: progress;
   min-height: 500px;
 }
 
 .chart-section {
-  grid-column: span 6;
+  grid-area: chart;
   min-height: 500px;
 }
 
 .gantt-section {
-  grid-column: span 12;
+  grid-area: gantt;
   min-height: 500px;
 }
 
 .map-section {
-  grid-column: span 12;
+  grid-area: map;
   min-height: 500px;
+}
+
+.weekly-report-section {
+  grid-area: weekly;
+  min-height: 500px;
+  display: block; /* 確保顯示 */
 }
 
 /* 大螢幕 (1200px 以上) */
 @media (min-width: 1201px) {
   .dashboard-container {
-    grid-template-columns: repeat(12, 1fr);
-  }
-  
-  .progress-section {
-    grid-column: 1 / span 6;
-  }
-  
-  .chart-section {
-    grid-column: 7 / span 6;
-  }
-  
-  .gantt-section {
-    grid-column: 1 / span 12;
-  }
-  
-  .map-section {
-    grid-column: 1 / span 12;
+    grid-template-areas: 
+      "progress progress progress progress progress progress chart chart chart chart chart chart"
+      "gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt"
+      "map map map map map map map map map map map map"
+      "weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly";
   }
 }
 
 /* 中等螢幕 (768px - 1200px) */
 @media (min-width: 768px) and (max-width: 1200px) {
   .dashboard-container {
-    grid-template-columns: repeat(12, 1fr);
+    grid-template-areas: 
+      "progress progress progress progress progress progress progress progress progress progress progress progress"
+      "chart chart chart chart chart chart chart chart chart chart chart chart"
+      "gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt"
+      "map map map map map map map map map map map map"
+      "weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly";
     gap: 15px;
     padding: 15px;
-  }
-  
-  .progress-section {
-    grid-column: 1 / span 12;
-    margin-bottom: 15px;
-  }
-  
-  .chart-section {
-    grid-column: 1 / span 12;
-    margin-bottom: 15px;
-  }
-  
-  .gantt-section {
-    grid-column: 1 / span 12;
-    margin-bottom: 15px;
-  }
-  
-  .map-section {
-    grid-column: 1 / span 12;
   }
 }
 
@@ -224,6 +210,12 @@ body {
 @media (max-width: 767px) {
   .dashboard-container {
     grid-template-columns: 1fr;
+    grid-template-areas: 
+      "progress"
+      "chart"
+      "gantt"
+      "map"
+      "weekly";
     gap: 10px;
     padding: 10px;
   }
