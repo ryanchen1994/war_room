@@ -53,11 +53,125 @@ export default {
       }
     }
 
+    const updateChart = () => {
+      try {
+        // 檢查 canvas 元素是否存在
+        if (!progressCanvas.value) {
+          console.warn('Canvas 元素不存在，無法更新圖表');
+          return;
+        }
+
+        // 確保 canvas 的父元素存在
+        if (!progressCanvas.value.parentElement) {
+          console.warn('Canvas 父元素不存在，無法更新圖表');
+          return;
+        }
+
+        // 設置 Canvas 尺寸
+        const parentWidth = progressCanvas.value.parentElement.clientWidth;
+        const parentHeight = progressCanvas.value.parentElement.clientHeight || 350;
+        
+        progressCanvas.value.style.width = '100%';
+        progressCanvas.value.style.height = '100%';
+        progressCanvas.value.width = parentWidth;
+        progressCanvas.value.height = parentHeight;
+
+        if (!chart.value) {
+          const ctx = progressCanvas.value.getContext('2d');
+          if (!ctx) {
+            console.error('無法獲取 Canvas 上下文');
+            return;
+          }
+
+          chart.value = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: progressData.value.map(item => item.PROJM_SNAME),
+              datasets: [
+                {
+                  label: '預定工作天',
+                  data: progressData.value.map(item => item.WORK_DAY),
+                  backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                  borderColor: 'rgba(54, 162, 235, 1)',
+                  borderWidth: 1
+                },
+                {
+                  label: '實際工作天',
+                  data: progressData.value.map(item => item.ACTUAL_WORK_DAY || 0),
+                  backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                  borderColor: 'rgba(75, 192, 192, 1)',
+                  borderWidth: 1
+                }
+              ]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                title: {
+                  display: true,
+                  text: '專案工作天數對比',
+                  font: {
+                    size: 16,
+                    weight: 'bold'
+                  }
+                },
+                legend: {
+                  position: 'bottom'
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      return context.dataset.label + ': ' + context.raw + ' 天';
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: '工作天數'
+                  }
+                },
+                y: {
+                  title: {
+                    display: true,
+                    text: '專案名稱'
+                  }
+                }
+              }
+            }
+          });
+          console.log('圖表創建成功');
+        } else {
+          // 更新圖表數據
+          chart.value.data.labels = progressData.value.map(item => item.PROJM_SNAME);
+          chart.value.data.datasets[0].data = progressData.value.map(item => item.WORK_DAY);
+          chart.value.data.datasets[1].data = progressData.value.map(item => item.ACTUAL_WORK_DAY || 0);
+          chart.value.update('none'); // 使用 'none' 模式更新，減少動畫
+          console.log('圖表更新成功');
+        }
+      } catch (error) {
+        console.error('圖表處理過程中發生錯誤:', error);
+        // 如果出錯，嘗試重新創建圖表
+        if (chart.value) {
+          try {
+            chart.value.destroy();
+          } catch (e) {
+            // 忽略銷毀時的錯誤
+          }
+          chart.value = null;
+        }
+      }
+    }
+
     const fetchProgress = async () => {
       try {
         console.log('開始獲取進度數據...');
         const response = await axios.get('http://localhost:5000/api/progress');
-        console.log('獲取到的進度數據:', response.data);
         
         if (Array.isArray(response.data)) {
           progressData.value = response.data.map(project => {
@@ -75,6 +189,8 @@ export default {
             
             return project;
           });
+          
+          // 直接更新圖表，不使用 nextTick
           updateChart();
         } else {
           console.error('API 返回的數據不是數組格式:', response.data);
@@ -89,7 +205,7 @@ export default {
         updateChart();
       }
     }
-    
+
     // 生成模擬數據函數
     const generateMockData = () => {
       const today = new Date();
@@ -112,92 +228,36 @@ export default {
       return progress;
     }
 
-    const updateChart = () => {
-      if (!chart.value) {
-        const ctx = progressCanvas.value.getContext('2d')
-        chart.value = new Chart(ctx, {
-          // 修改這裡：將 horizontalBar 改為 bar，並在 options 中設置 indexAxis: 'y'
-          type: 'bar',
-          data: {
-            labels: progressData.value.map(item => item.PROJM_SNAME),
-            datasets: [
-              {
-                label: '預定工作天',
-                data: progressData.value.map(item => item.WORK_DAY),
-                backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
-              },
-              {
-                label: '實際工作天',
-                data: progressData.value.map(item => item.ACTUAL_WORK_DAY || 0),
-                backgroundColor: 'rgba(75, 192, 192, 0.7)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
-              }
-            ]
-          },
-          options: {
-            indexAxis: 'y', // 這是關鍵設置，使條形圖水平顯示
-            responsive: true,
-            maintainAspectRatio: false,
-            // 其餘選項保持不變
-            plugins: {
-              title: {
-                display: true,
-                text: '專案工作天數對比',
-                font: {
-                  size: 16,
-                  weight: 'bold'
-                }
-              },
-              legend: {
-                position: 'bottom'
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return context.dataset.label + ': ' + context.raw + ' 天';
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                beginAtZero: true,
-                title: {
-                  display: true,
-                  text: '工作天數'
-                }
-              },
-              y: {
-                title: {
-                  display: true,
-                  text: '專案名稱'
-                }
-              }
+    onMounted(() => {
+      // 延遲初始化，確保 DOM 已完全渲染
+      setTimeout(() => {
+        fetchProgress();
+        // 設置輪詢間隔
+        intervalId = setInterval(fetchProgress, 30000);
+        
+        // 設置 Socket.IO
+        socket = io('http://localhost:5000');
+        socket.on('connect', () => {
+          console.log('已連線到 Socket.IO 伺服器');
+        });
+        socket.on('update', (data) => {
+          socketMessage.value = data.message;
+          fetchProgress();
+        });
+        
+        // 添加窗口大小變化監聽器
+        window.addEventListener('resize', () => {
+          // 簡化 resize 處理邏輯
+          if (chart.value) {
+            try {
+              chart.value.resize();
+            } catch (e) {
+              console.warn('調整圖表大小時出錯');
+              // 不要立即重新創建圖表，避免頻繁重建
             }
           }
-        })
-      } else {
-        chart.value.data.labels = progressData.value.map(item => item.PROJM_SNAME)
-        chart.value.data.datasets[0].data = progressData.value.map(item => item.WORK_DAY)
-        chart.value.data.datasets[1].data = progressData.value.map(item => item.ACTUAL_WORK_DAY || 0)
-        chart.value.update()
-      }
-    }
-
-    onMounted(() => {
-      fetchProgress()
-      intervalId = setInterval(fetchProgress, 10000)
-      socket = io('http://localhost:5000')
-      socket.on('connect', () => {
-        console.log('已連線到 Socket.IO 伺服器')
-      })
-      socket.on('update', (data) => {
-        socketMessage.value = data.message
-        fetchProgress()
-      })
+        });
+      }, 500);
     })
 
     onBeforeUnmount(() => {

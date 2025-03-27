@@ -191,136 +191,47 @@ def get_performance_data():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/api/weekly-report', methods=['GET'])
-def get_weekly_report():
+@app.route('/api/remar-data', methods=['GET'])
+def get_remar_data():
     try:
-        # 這裡應該從資料庫獲取周報數據
-        # 目前使用模擬數據
-        today = datetime.now()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 使用您提供的 SQL 查詢
+        sql_query = """
+        SELECT r.*
+        FROM [PT].[dbo].[Remar] r
+        WHERE r.COP_NO IN ('HG','HM')
+          AND r.PROJM_NO IN ('0027-1', '0040', '0051', '0021', '0038')
+          AND r.DAY_DATE = (
+              SELECT MAX(r2.DAY_DATE)
+              FROM [PT].[dbo].[Remar] r2
+              WHERE r2.PROJM_NO = r.PROJM_NO
+                AND r2.COP_NO IN ('HG','HM')
+          );
+        """
         
-        projects = [
-            {
-                "id": "P001",
-                "name": "台北商辦大樓",
-                "progress": 65,
-                "startDate": "20230315",
-                "endDate": "20240520",
-                "actualDays": 180,
-                "totalDays": 280,
-                "workItems": [
-                    { 
-                        "name": "基礎工程", 
-                        "plannedStart": "20230315", 
-                        "plannedEnd": "20230615", 
-                        "actualStart": "20230320", 
-                        "actualEnd": "20230620", 
-                        "progress": 100 
-                    },
-                    { 
-                        "name": "結構工程", 
-                        "plannedStart": "20230601", 
-                        "plannedEnd": "20231015", 
-                        "actualStart": "20230610", 
-                        "actualEnd": "20231020", 
-                        "progress": 100 
-                    },
-                    { 
-                        "name": "機電工程", 
-                        "plannedStart": "20230815", 
-                        "plannedEnd": "20240215", 
-                        "actualStart": "20230825", 
-                        "actualEnd": None, 
-                        "progress": 70 
-                    },
-                    { 
-                        "name": "裝修工程", 
-                        "plannedStart": "20231115", 
-                        "plannedEnd": "20240415", 
-                        "actualStart": "20231125", 
-                        "actualEnd": None, 
-                        "progress": 40 
-                    },
-                    { 
-                        "name": "驗收", 
-                        "plannedStart": "20240415", 
-                        "plannedEnd": "20240520", 
-                        "actualStart": None, 
-                        "actualEnd": None, 
-                        "progress": 0 
-                    }
-                ],
-                "operationItems": [
-                    { "name": "鋼筋綁紮", "unit": "噸", "plannedQuantity": 450, "completedQuantity": 450, "completionRate": 100, "notes": "已完成" },
-                    { "name": "模板組立", "unit": "㎡", "plannedQuantity": 12000, "completedQuantity": 12000, "completionRate": 100, "notes": "已完成" },
-                    { "name": "混凝土澆置", "unit": "㎥", "plannedQuantity": 8500, "completedQuantity": 8500, "completionRate": 100, "notes": "已完成" },
-                    { "name": "機電管線", "unit": "式", "plannedQuantity": 1, "completedQuantity": 0.7, "completionRate": 70, "notes": "進行中" },
-                    { "name": "內部裝修", "unit": "㎡", "plannedQuantity": 9500, "completedQuantity": 3800, "completionRate": 40, "notes": "進行中" }
-                ]
-            },
-            {
-                "id": "P002",
-                "name": "新竹科技園區",
-                "progress": 80,
-                "startDate": "20230110",
-                "endDate": "20240310",
-                "actualDays": 220,
-                "totalDays": 270,
-                "workItems": [
-                    { 
-                        "name": "基礎工程", 
-                        "plannedStart": "20230110", 
-                        "plannedEnd": "20230410", 
-                        "actualStart": "20230115", 
-                        "actualEnd": "20230415", 
-                        "progress": 100 
-                    },
-                    { 
-                        "name": "結構工程", 
-                        "plannedStart": "20230401", 
-                        "plannedEnd": "20230815", 
-                        "actualStart": "20230405", 
-                        "actualEnd": "20230820", 
-                        "progress": 100 
-                    },
-                    { 
-                        "name": "機電工程", 
-                        "plannedStart": "20230715", 
-                        "plannedEnd": "20231215", 
-                        "actualStart": "20230720", 
-                        "actualEnd": "20231220", 
-                        "progress": 100 
-                    },
-                    { 
-                        "name": "裝修工程", 
-                        "plannedStart": "20231015", 
-                        "plannedEnd": "20240215", 
-                        "actualStart": "20231020", 
-                        "actualEnd": None, 
-                        "progress": 75 
-                    },
-                    { 
-                        "name": "驗收", 
-                        "plannedStart": "20240215", 
-                        "plannedEnd": "20240310", 
-                        "actualStart": None, 
-                        "actualEnd": None, 
-                        "progress": 0 
-                    }
-                ],
-                "operationItems": [
-                    { "name": "鋼筋綁紮", "unit": "噸", "plannedQuantity": 380, "completedQuantity": 380, "completionRate": 100, "notes": "已完成" },
-                    { "name": "模板組立", "unit": "㎡", "plannedQuantity": 10500, "completedQuantity": 10500, "completionRate": 100, "notes": "已完成" },
-                    { "name": "混凝土澆置", "unit": "㎥", "plannedQuantity": 7200, "completedQuantity": 7200, "completionRate": 100, "notes": "已完成" },
-                    { "name": "機電管線", "unit": "式", "plannedQuantity": 1, "completedQuantity": 1, "completionRate": 100, "notes": "已完成" },
-                    { "name": "內部裝修", "unit": "㎡", "plannedQuantity": 8200, "completedQuantity": 6150, "completionRate": 75, "notes": "進行中" }
-                ]
-            }
-        ]
+        cursor.execute(sql_query)
         
-        return jsonify(projects)
+        # 獲取列名
+        columns = [column[0] for column in cursor.description]
+        
+        # 將查詢結果轉換為字典列表
+        rows = cursor.fetchall()
+        data = []
+        for row in rows:
+            item = {}
+            for i, column in enumerate(columns):
+                item[column] = row[i]
+            data.append(item)
+
+        cursor.close()
+        conn.close()
+        
+        return jsonify(data)
     except Exception as e:
-        print(f"獲取周報數據錯誤: {str(e)}")
-        return jsonify([])
+        print(f"獲取 Remar 數據錯誤: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 def background_thread():
