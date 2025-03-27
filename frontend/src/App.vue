@@ -142,8 +142,8 @@ body {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   grid-template-areas: 
-    "progress progress progress progress progress progress chart chart chart chart chart chart"
-    "gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt"
+    "progress progress progress progress progress progress progress progress progress progress progress progress"
+    "chart chart chart chart chart chart gantt gantt gantt gantt gantt gantt"
     "map map map map map map map map map map map map"
     "weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly";
   gap: 20px;
@@ -157,7 +157,7 @@ body {
 
 .progress-section {
   grid-area: progress;
-  min-height: 500px;
+  min-height: 400px;
 }
 
 .chart-section {
@@ -185,8 +185,8 @@ body {
 @media (min-width: 1201px) {
   .dashboard-container {
     grid-template-areas: 
-      "progress progress progress progress progress progress chart chart chart chart chart chart"
-      "gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt gantt"
+      "progress progress progress progress progress progress progress progress progress progress progress progress"
+      "chart chart chart chart chart chart gantt gantt gantt gantt gantt gantt"
       "map map map map map map map map map map map map"
       "weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly";
   }
