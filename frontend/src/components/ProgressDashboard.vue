@@ -30,7 +30,7 @@
           <span class="project-id">專案編號: {{ project.PROJM_NO }}</span>
           <span :class="getStatusClass(project)" class="project-status">
             {{ getStatusText(project) }}
-            <span v-if="project.APER !== project.PPER" class="progress-diff">
+            <span v-if="Math.abs(project.APER - project.PPER) >= 0.01" class="progress-diff">
               {{ project.APER > project.PPER ? '+' : '' }}{{ (project.APER - project.PPER).toFixed(1) }}%
             </span>
           </span>
@@ -131,16 +131,30 @@ export default {
     const getStatusText = (project) => {
       if (!project.PPER || !project.APER) return '未開始';
       
+      // 計算進度差異的絕對值
+      const progressDiff = Math.abs((project.APER || 0) - (project.PPER || 0));
+      
+
+      
       if (project.BUILD_REM202 && project.BUILD_REM202.includes('超前')) {
         return '超前';
       } else if (project.BUILD_REM202 && project.BUILD_REM202.includes('落後')) {
-        return '落後';
-      } else if (project.APER >= 100) {
+        // 如果差異小於 0.01%，視為符合進度
+        if (progressDiff < 0.01) {
+          return '符合進度';
+        } else {
+          return '落後';
+        }
+      } else if (project.APER >= 90) {
         return '已完成';
-      } else if (project.APER >= project.PPER) {
-        return '符合進度';
+      } else if (project.APER > project.PPER) {
+        return '超前';
       } else {
-        return '落後';
+        if (progressDiff < 0.01) {
+          return '符合進度';
+        } else {
+          return '落後';
+        }
       }
     }
 
