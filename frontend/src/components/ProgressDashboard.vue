@@ -50,7 +50,7 @@
             <span class="detail-label">實際進度:</span>
             <span class="detail-value">{{ parseFloat(project.APER || 0).toFixed(3) }}%</span>
           </div>
-          <div class="detail-item">
+          <div class="detail-item date-item">
             <span class="detail-label">更新日期:</span>
             <span class="detail-value">{{ formatDate(project.DAY_DATE) }}</span>
           </div>
@@ -216,8 +216,12 @@ export default {
               legend: {
                 position: 'bottom',
                 labels: {
-                  padding: 10
-                }
+                  padding: 5, // 減少間距
+                  font: {
+                    size: 10 // 減小字體大小
+                  }
+                },
+                display: false // 隱藏圖例以節省空間
               },
               tooltip: {
                 callbacks: {
@@ -520,12 +524,107 @@ export default {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: hidden; /* 改回 hidden，讓內部元素可以使用捲動軸 */
 }
 
+/* 進度概況卡片樣式 */
+.progress-summary {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  gap: 15px;
+  flex-shrink: 0; /* 防止摘要卡片被壓縮 */
+}
+
+/* 專案圖表容器 */
+.projects-charts-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 15px;
+  overflow-y: auto; /* 添加垂直捲動軸 */
+  padding-right: 5px; /* 為捲動軸預留空間 */
+  flex-grow: 1;
+  max-height: calc(100% - 120px); /* 設定最大高度，留出空間給摘要卡片和標題 */
+}
+
+.project-chart-card {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  height: auto;
+}
+
+.project-chart-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  font-size: 0.75rem;
+}
+
+/* 修改日期項目樣式，確保在同一行 */
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  white-space: nowrap; /* 防止換行 */
+  overflow: hidden; /* 隱藏溢出內容 */
+}
+
+.detail-label {
+  color: #666;
+  flex-shrink: 0; /* 防止標籤被壓縮 */
+  margin-right: 5px; /* 與值之間的間距 */
+}
+
+.detail-value {
+  font-weight: 500;
+  color: #333;
+  text-overflow: ellipsis; /* 文字溢出時顯示省略號 */
+  overflow: hidden; /* 隱藏溢出內容 */
+}
+
+/* 特別處理日期項目 */
+.detail-item.date-item {
+  grid-column: span 2; /* 日期項目橫跨兩列 */
+}
+
+/* 自定義捲動軸樣式 */
+.projects-charts-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.projects-charts-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.projects-charts-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.projects-charts-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.realtime-message {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background-color: #e8f5e9;
+  border-radius: 8px;
+  color: #2e7d32;
+  display: flex;
+  align-items: center;
+  animation: fadeIn 0.5s ease;
+  flex-shrink: 0; /* 防止消息被壓縮 */
+}
 .dashboard-title {
   margin-top: 0;
-  margin-bottom: 20px;
+  margin-bottom: 15px; /* 減少底部間距 */
   color: #333;
   font-size: 1.5rem;
 }
@@ -534,7 +633,7 @@ export default {
 .progress-summary {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 15px; /* 減少底部間距 */
   gap: 15px;
 }
 
@@ -568,18 +667,17 @@ export default {
 /* 專案圖表容器 */
 .projects-charts-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 15px;
-  margin-bottom: 20px;
-  overflow-y: auto;
-  padding-right: 5px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* 減小最小寬度 */
+  gap: 12px; /* 減少間距 */
+  margin-bottom: 15px; /* 減少底部間距 */
+  padding-right: 0; /* 移除右側內邊距 */
   flex-grow: 1;
 }
 
 .project-chart-card {
   background-color: #f9f9f9;
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px; /* 減少內邊距 */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
@@ -593,52 +691,45 @@ export default {
 
 .project-chart-title {
   margin-top: 0;
-  margin-bottom: 8px;
-  font-size: 1rem;
+  margin-bottom: 5px; /* 減少底部間距 */
+  font-size: 0.95rem; /* 減小字體大小 */
   color: #333;
 }
 
 .project-chart-info {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
-  font-size: 0.85rem;
-}
-
-.project-id {
-  color: #666;
-}
-
-.project-status {
-  font-weight: 500;
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-size: 0.8rem;
+  margin-bottom: 8px; /* 減少底部間距 */
+  font-size: 0.8rem; /* 減小字體大小 */
 }
 
 .project-chart-container {
-  height: 180px;
-  margin-bottom: 10px;
+  height: 150px; /* 減小圖表高度 */
+  margin-bottom: 8px; /* 減少底部間距 */
   position: relative;
 }
 
 .project-chart-details {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  font-size: 0.8rem;
+  gap: 5px; /* 減少間距 */
+  font-size: 0.75rem; /* 減小字體大小 */
 }
 
 /* 添加媒體查詢，確保在不同屏幕尺寸下的響應式布局 */
 @media (min-width: 1400px) {
   .projects-charts-container {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }
 }
 
 @media (max-width: 1200px) {
   .projects-charts-container {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+  
+  .project-chart-container {
+    height: 140px;
   }
 }
 

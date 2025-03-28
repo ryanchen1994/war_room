@@ -157,7 +157,9 @@ body {
 
 .progress-section {
   grid-area: progress;
-  min-height: 400px;
+  min-height: 450px; /* 增加高度 */
+  height: auto;
+  max-height: 600px; /* 設置最大高度 */
 }
 
 .chart-section {
@@ -189,6 +191,10 @@ body {
       "chart chart chart chart chart chart gantt gantt gantt gantt gantt gantt"
       "map map map map map map map map map map map map"
       "weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly weekly";
+  }
+  
+  .progress-section {
+    min-height: 500px; /* 大螢幕增加更多高度 */
   }
 }
 
