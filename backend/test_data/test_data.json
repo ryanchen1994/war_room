@@ -9,8 +9,8 @@
         "PWORK_DAY": 999,
         "AWORK_DAY": 800,
         "PMDAY": 200,
-        "PPER": 80.0,
-        "APER": 79.999,
+        "PPER": 8.0,
+        "APER": 49.99,
         "REMARK_601": "客廳裝了3台空調",
         "UPDATE_DATE": "AUTO_TIMESTAMP"
     }
