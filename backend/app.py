@@ -9,6 +9,7 @@ import time
 import os
 from datetime import datetime, timedelta
 import random
+from test_data.remar_data import get_test_data
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -197,22 +198,10 @@ def get_remar_data():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # 使用您提供的 SQL 查詢
-        sql_query = """
-        SELECT r.*
-        FROM [PT].[dbo].[Remar] r
-        WHERE r.COP_NO IN ('HG','HM')
-          AND r.PROJM_NO IN ('0027-1', '0040', '0051', '0021', '0038')
-          AND r.DAY_DATE = (
-              SELECT MAX(r2.DAY_DATE)
-              FROM [PT].[dbo].[Remar] r2
-              WHERE r2.PROJM_NO = r.PROJM_NO
-                AND r2.COP_NO IN ('HG','HM')
-          );
-        """
-        
+        # 讀取 SQL 檔案
+        sql_query = load_sql("remar_data.sql")
         cursor.execute(sql_query)
-        
+
         # 獲取列名
         columns = [column[0] for column in cursor.description]
         
@@ -228,6 +217,12 @@ def get_remar_data():
         cursor.close()
         conn.close()
         
+        # 檢查並加入測試資料
+        test_data = get_test_data()
+        if test_data:
+            data.append(test_data)
+
+
         return jsonify(data)
     except Exception as e:
         print(f"獲取 Remar 數據錯誤: {str(e)}")

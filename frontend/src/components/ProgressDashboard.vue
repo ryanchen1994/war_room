@@ -9,8 +9,8 @@
         <div class="card-value">{{ progressData.length }}</div>
       </div>
       <div class="summary-card">
-        <div class="card-title">平均進度</div>
-        <div class="card-value">{{ averageProgress }}%</div>
+        <div class="card-title">專案準時率</div>
+        <div class="card-value">{{ onTimeRate }}%</div>
       </div>
       <div class="summary-card">
         <div class="card-title">超前專案</div>
@@ -22,10 +22,19 @@
       </div>
     </div>
     
+    <!-- 進度誤差說明 -->
+    <div class="progress-note">
+      <span class="note-icon">ℹ️</span>
+      <span class="note-text">預期與實際進度誤差<0.01%，視為符合進度</span>
+    </div>
+    
     <!-- 專案圖表區域 - 每個專案一個圖表 -->
     <div class="projects-charts-container">
       <div v-for="(project, index) in progressData" :key="project.PROJM_NO" class="project-chart-card">
-        <h3 class="project-chart-title">{{ project.PROJM_NAME || '未命名專案' }}</h3>
+        <div class="project-header">
+          <h3 class="project-chart-title">{{ project.PROJM_NAME || '未命名專案' }}</h3>
+          <span class="project-update-date">{{ formatDate(project.DAY_DATE) }}</span>
+        </div>
         <div class="project-chart-info">
           <span class="project-id">專案編號: {{ project.PROJM_NO }}</span>
           <span :class="getStatusClass(project)" class="project-status">
@@ -40,11 +49,11 @@
         </div>
         <div class="project-chart-details">
           <div class="detail-item">
-            <span class="detail-label">預計工作天數:</span>
+            <span class="detail-label">預計天數:</span>
             <span class="detail-value">{{ project.PWORK_DAY || 0 }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">實際工作天數:</span>
+            <span class="detail-label">實際天數:</span>
             <span class="detail-value">{{ project.AWORK_DAY || 0 }}</span>
           </div>
           <div class="detail-item">
@@ -55,10 +64,7 @@
             <span class="detail-label">實際進度:</span>
             <span class="detail-value">{{ parseFloat(project.APER || 0).toFixed(3) }}%</span>
           </div>
-          <div class="detail-item date-item">
-            <span class="detail-label">更新日期:</span>
-            <span class="detail-value">{{ formatDate(project.DAY_DATE) }}</span>
-          </div>
+          <!-- 移除了日期項目 -->
         </div>
       </div>
     </div>
@@ -92,10 +98,28 @@ export default {
       return Math.round(sum / progressData.value.length);
     });
 
+    // 計算專案準時率 (符合進度或超前的專案比例)
+    const onTimeRate = computed(() => {
+      if (progressData.value.length === 0) return 0;
+      
+      const onTimeProjects = progressData.value.filter(project => {
+        // 如果專案未開始，不計入準時率
+        if (!project.PPER || !project.APER) return false;
+        
+        // 計算進度差異的絕對值
+        const progressDiff = Math.abs((project.APER || 0) - (project.PPER || 0));
+        
+        // 符合進度或超前的專案
+        return progressDiff < 0.01 || project.APER >= project.PPER;
+      });
+      
+      return Math.round((onTimeProjects.length / progressData.value.length) * 100);
+    });
+
     // 計算超前專案數量
     const aheadProjects = computed(() => {
       return progressData.value.filter(project => 
-        (project.APER || 0) > (project.PPER || 0)
+        (project.APER || 0) > (project.PPER || 0) && Math.abs((project.APER || 0) - (project.PPER || 0)) >= 0.01
       ).length;
     });
 
@@ -542,6 +566,7 @@ export default {
       getStatusText,
       getStatusClass,
       averageProgress,
+      onTimeRate,
       aheadProjects,
       behindProjects
     }
@@ -567,9 +592,31 @@ export default {
 .progress-summary {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 15px;
+  margin-bottom: 10px; /* 減少底部間距 */
   gap: 15px;
   flex-shrink: 0; /* 防止摘要卡片被壓縮 */
+}
+
+/* 進度誤差說明樣式 */
+.progress-note {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 10px;
+  padding: 4px 8px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.note-icon {
+  margin-right: 6px;
+  font-size: 0.9rem;
+}
+
+.note-text {
+  font-style: italic;
 }
 
 /* 專案圖表容器 */
@@ -581,13 +628,13 @@ export default {
   overflow-y: auto; /* 添加垂直捲動軸 */
   padding-right: 5px; /* 為捲動軸預留空間 */
   flex-grow: 1;
-  max-height: calc(100% - 120px); /* 設定最大高度，留出空間給摘要卡片和標題 */
+  max-height: calc(100% - 150px); /* 調整最大高度，為新增的說明文字留出空間 */
 }
 
 .project-chart-card {
   background-color: #f9f9f9;
   border-radius: 8px;
-  padding: 10px;
+  padding: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
@@ -670,14 +717,14 @@ export default {
   display: flex;
   justify-content: space-between;
   margin-bottom: 15px; /* 減少底部間距 */
-  gap: 15px;
+  gap: 12px;
 }
 
 .summary-card {
   flex: 1;
   background-color: #f9f9f9;
   border-radius: 8px;
-  padding: 15px;
+  padding: 1px;
   text-align: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
@@ -727,20 +774,20 @@ export default {
 
 .project-chart-title {
   margin-top: 0;
-  margin-bottom: 5px; /* 減少底部間距 */
-  font-size: 0.95rem; /* 減小字體大小 */
+  margin-bottom: 4px; /* 減少底部間距 */
+  font-size: 1rem; /* 減小字體大小 */
   color: #333;
 }
 
 .project-chart-info {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px; /* 減少底部間距 */
+  margin-bottom: 6px; /* 減少底部間距 */
   font-size: 0.8rem; /* 減小字體大小 */
 }
 
 .project-chart-container {
-  height: 150px; /* 減小圖表高度 */
+  height: 140px; /* 減小圖表高度 */
   margin-bottom: 8px; /* 減少底部間距 */
   position: relative;
 }
@@ -748,7 +795,7 @@ export default {
 .project-chart-details {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 5px; /* 減少間距 */
+  gap: 3px; /* 減少間距 */
   font-size: 0.75rem; /* 減小字體大小 */
 }
 
@@ -786,6 +833,7 @@ export default {
 .detail-item {
   display: flex;
   justify-content: space-between;
+  
 }
 
 .detail-label {
@@ -869,11 +917,37 @@ export default {
   color: #e65100;
 }
 
-/* 確保日期項目在同一行 */
+.project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.project-chart-title {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-update-date {
+  font-size: 0.7rem;
+  color: #888;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+/* 移除舊的日期項目樣式 */
 .detail-item.date-item {
   grid-column: span 2;
   white-space: nowrap;
   overflow: hidden;
+  padding: 2px 0;
+  font-size: 0.7rem;
 }
 
 .detail-item.date-item .detail-value {
