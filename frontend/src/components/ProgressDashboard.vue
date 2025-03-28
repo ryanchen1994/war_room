@@ -9,15 +9,15 @@
         <div class="card-value">{{ progressData.length }}</div>
       </div>
       <div class="summary-card">
-        <div class="card-title">專案準時率</div>
+        <div class="card-title">準時率</div>
         <div class="card-value">{{ onTimeRate }}%</div>
       </div>
       <div class="summary-card">
-        <div class="card-title">超前專案</div>
+        <div class="card-title">超前數</div>
         <div class="card-value">{{ aheadProjects }}</div>
       </div>
       <div class="summary-card">
-        <div class="card-title">落後專案</div>
+        <div class="card-title">落後數</div>
         <div class="card-value">{{ behindProjects }}</div>
       </div>
     </div>
@@ -234,23 +234,27 @@ export default {
               {
                 data: [
                   project.APER || 0, 
-                  (project.PPER > project.APER) ? (project.PPER - project.APER) : 0, 
-                  100 - (project.APER || 0) // 修改為與實際進度相減
+                  // 如果實際進度超前，使用正值表示超前差異；如果落後，使用正值表示落後差異
+                  (project.APER > project.PPER) ? (project.APER - project.PPER) : (project.PPER > project.APER) ? (project.PPER - project.APER) : 0, 
+                  // 剩餘進度始終是 100 減去實際進度
+                  100 - Math.max(project.APER || 0, project.PPER || 0)
                 ],
                 backgroundColor: [
-                  statusColor.bg,
-                  'rgba(54, 162, 235, 0.3)', // 降低透明度
+                  'rgba(33, 150, 243, 0.5)', // 藍色 - 實際進度
+                  // 根據是否超前選擇顏色：超前為綠色，落後為紅色
+                  (project.APER > project.PPER) ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)', 
                   'rgba(220, 220, 220, 0.3)'
                 ],
                 borderColor: [
-                  statusColor.border,
-                  'rgba(54, 162, 235, 0.8)',
+                  'rgba(33, 150, 243, 0.8)', // 藍色 - 實際進度
+                  // 根據是否超前選擇邊框顏色：超前為綠色，落後為紅色
+                  (project.APER > project.PPER) ? 'rgba(76, 175, 80, 0.8)' : 'rgba(244, 67, 54, 0.8)', 
                   'rgba(220, 220, 220, 0.5)'
                 ],
                 borderWidth: 1,
                 borderDash: [
                   [0, 0], 
-                  [5, 5], // 為預計差異部分添加虛線效果
+                  [5, 5], // 為差異部分添加虛線效果
                   [0, 0]
                 ]
               }
@@ -327,8 +331,9 @@ export default {
             beforeDraw(chart) {
               const { ctx } = chart;
               const meta = chart.getDatasetMeta(0);
+              const project = progressData.value[index];
               
-              // 只處理預計差異部分（索引1）
+              // 只處理差異部分（索引1）
               if (meta.data[1]) {
                 const arc = meta.data[1];
                 
@@ -343,15 +348,20 @@ export default {
                 // 設置虛線樣式
                 ctx.setLineDash([3, 3]);
                 ctx.lineWidth = 1.5;
-                ctx.strokeStyle = 'rgba(54, 162, 235, 0.8)';
+                
+                // 根據是否超前選擇顏色
+                if (project.APER > project.PPER) {
+                  ctx.strokeStyle = 'rgba(76, 175, 80, 0.8)'; // 綠色虛線 - 超前
+                  ctx.fillStyle = 'rgba(76, 175, 80, 0.2)'; // 綠色填充 - 超前
+                } else {
+                  ctx.strokeStyle = 'rgba(244, 67, 54, 0.8)'; // 紅色虛線 - 落後
+                  ctx.fillStyle = 'rgba(244, 67, 54, 0.2)'; // 紅色填充 - 落後
+                }
                 
                 // 繪製虛線邊框和填充
                 ctx.beginPath();
                 arc.draw(ctx);
                 ctx.stroke();
-                
-                // 使用半透明填充
-                ctx.fillStyle = 'rgba(54, 162, 235, 0.2)';
                 ctx.fill();
                 
                 // 恢復原始設置
@@ -370,22 +380,22 @@ export default {
       const status = getStatusText(project);
       if (status === '超前') {
         return {
-          bg: 'rgba(75, 192, 192, 0.5)',
-          border: 'rgba(75, 192, 192, 1)'
+          bg: 'rgba(33, 150, 243, 0.5)', // 藍色
+          border: 'rgba(33, 150, 243, 1)'
         };
       } else if (status === '落後') {
         return {
-          bg: 'rgba(255, 99, 132, 0.5)',
-          border: 'rgba(255, 99, 132, 1)'
+          bg: 'rgba(244, 67, 54, 0.5)', // 紅色
+          border: 'rgba(244, 67, 54, 1)'
         };
       } else if (status === '已完成') {
         return {
-          bg: 'rgba(54, 162, 235, 0.5)',
-          border: 'rgba(54, 162, 235, 1)'
+          bg: 'rgba(76, 175, 80, 0.5)', // 綠色
+          border: 'rgba(76, 175, 80, 1)'
         };
       } else {
         return {
-          bg: 'rgba(255, 205, 86, 0.5)',
+          bg: 'rgba(255, 205, 86, 0.5)', // 黃色
           border: 'rgba(255, 205, 86, 1)'
         };
       }
@@ -674,7 +684,6 @@ export default {
 .detail-item.date-item {
   grid-column: span 2; /* 日期項目橫跨兩列 */
 }
-
 /* 自定義捲動軸樣式 */
 .projects-charts-container::-webkit-scrollbar {
   width: 6px;
@@ -896,7 +905,6 @@ export default {
   align-items: center;
   gap: 4px;
 }
-
 .progress-diff {
   font-size: 0.75rem;
   font-weight: 600;
@@ -904,26 +912,21 @@ export default {
   border-radius: 8px;
   background-color: rgba(255, 255, 255, 0.5);
 }
-
 .status-ahead .progress-diff {
   color: #1b5e20;
 }
-
 .status-behind .progress-diff {
   color: #b71c1c;
 }
-
 .status-ontrack .progress-diff {
   color: #e65100;
 }
-
 .project-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 4px;
 }
-
 .project-chart-title {
   margin: 0;
   font-size: 1rem;
@@ -933,14 +936,12 @@ export default {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .project-update-date {
   font-size: 0.7rem;
   color: #888;
   margin-left: 8px;
   white-space: nowrap;
 }
-
 /* 移除舊的日期項目樣式 */
 .detail-item.date-item {
   grid-column: span 2;
@@ -949,49 +950,40 @@ export default {
   padding: 2px 0;
   font-size: 0.7rem;
 }
-
 .detail-item.date-item .detail-value {
   text-overflow: ellipsis;
   overflow: hidden;
 }
-
 .detail-label {
   color: #666;
   flex-shrink: 0; /* 防止標籤被壓縮 */
   margin-right: 5px; /* 與值之間的間距 */
 }
-
 .detail-value {
   font-weight: 500;
   color: #333;
   text-overflow: ellipsis; /* 文字溢出時顯示省略號 */
   overflow: hidden; /* 隱藏溢出內容 */
 }
-
 /* 特別處理日期項目 */
 .detail-item.date-item {
   grid-column: span 2; /* 日期項目橫跨兩列 */
 }
-
 /* 自定義捲動軸樣式 */
 .projects-charts-container::-webkit-scrollbar {
   width: 6px;
 }
-
 .projects-charts-container::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 3px;
 }
-
 .projects-charts-container::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 3px;
 }
-
 .projects-charts-container::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
-
 .realtime-message {
   margin-top: 15px;
   padding: 10px;
@@ -1002,12 +994,10 @@ export default {
   align-items: center;
   animation: fadeIn 0.5s ease;
 }
-
 .message-icon {
   margin-right: 8px;
   font-size: 1.2rem;
 }
-
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
