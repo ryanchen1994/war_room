@@ -28,7 +28,12 @@
         <h3 class="project-chart-title">{{ project.PROJM_NAME || '未命名專案' }}</h3>
         <div class="project-chart-info">
           <span class="project-id">專案編號: {{ project.PROJM_NO }}</span>
-          <span :class="getStatusClass(project)" class="project-status">{{ getStatusText(project) }}</span>
+          <span :class="getStatusClass(project)" class="project-status">
+            {{ getStatusText(project) }}
+            <span v-if="project.APER !== project.PPER" class="progress-diff">
+              {{ project.APER > project.PPER ? '+' : '' }}{{ (project.APER - project.PPER).toFixed(1) }}%
+            </span>
+          </span>
         </div>
         <div class="project-chart-container">
           <canvas :ref="el => { if (el) projectCharts[index] = el }"></canvas>
@@ -186,25 +191,30 @@ export default {
         const chart = new Chart(ctx, {
           type: 'doughnut',
           data: {
-            labels: ['實際進度', '預計進度', '剩餘'],
+            labels: ['實際進度', '預計差異', '剩餘'],
             datasets: [
               {
                 data: [
                   project.APER || 0, 
                   (project.PPER > project.APER) ? (project.PPER - project.APER) : 0, 
-                  100 - Math.max(project.PPER || 0, project.APER || 0)
+                  100 - (project.APER || 0) // 修改為與實際進度相減
                 ],
                 backgroundColor: [
                   statusColor.bg,
-                  'rgba(54, 162, 235, 0.5)',
+                  'rgba(54, 162, 235, 0.3)', // 降低透明度
                   'rgba(220, 220, 220, 0.3)'
                 ],
                 borderColor: [
                   statusColor.border,
-                  'rgba(54, 162, 235, 1)',
+                  'rgba(54, 162, 235, 0.8)',
                   'rgba(220, 220, 220, 0.5)'
                 ],
-                borderWidth: 1
+                borderWidth: 1,
+                borderDash: [
+                  [0, 0], 
+                  [5, 5], // 為預計差異部分添加虛線效果
+                  [0, 0]
+                ]
               }
             ]
           },
@@ -216,57 +226,33 @@ export default {
               legend: {
                 position: 'bottom',
                 labels: {
-                  padding: 5, // 減少間距
+                  padding: 5,
                   font: {
-                    size: 10 // 減小字體大小
+                    size: 10
                   }
                 },
-                display: false // 隱藏圖例以節省空間
+                display: false
               },
               tooltip: {
                 callbacks: {
                   label: function(context) {
                     const label = context.label || '';
-                    const value = parseFloat(context.raw).toFixed(3);
+                    const value = parseFloat(context.raw).toFixed(1);
                     
                     if (label === '實際進度') {
                       return `實際進度: ${value}%`;
-                    } else if (label === '預計進度') {
-                      return `預計進度差異: +${value}%`;
+                    } else if (label === '預計差異') {
+                      return `預計差異: ${value}%`;
                     } else {
                       return `剩餘: ${value}%`;
                     }
                   },
                   afterLabel: function(context) {
                     if (context.label === '實際進度') {
-                      return `總預計進度: ${parseFloat(project.PPER || 0).toFixed(3)}%`;
+                      return `總預計進度: ${parseFloat(project.PPER || 0).toFixed(1)}%`;
                     }
                     return null;
                   }
-                }
-              },
-              // 添加中心文字顯示
-              doughnutLabel: {
-                beforeDatasetsDraw(chart) {
-                  const { ctx, data } = chart;
-                  ctx.save();
-                  const xCoor = chart.getDatasetMeta(0).data[0].x;
-                  const yCoor = chart.getDatasetMeta(0).data[0].y;
-                  ctx.font = 'bold 16px Arial';
-                  ctx.fillStyle = '#333';
-                  ctx.textAlign = 'center';
-                  ctx.textBaseline = 'middle';
-                  
-                  const actualProgress = parseFloat(project.APER || 0).toFixed(1);
-                  const plannedProgress = parseFloat(project.PPER || 0).toFixed(1);
-                  
-                  ctx.fillText(`${actualProgress}%`, xCoor, yCoor - 10);
-                  
-                  ctx.font = '12px Arial';
-                  ctx.fillStyle = '#666';
-                  ctx.fillText(`計劃: ${plannedProgress}%`, xCoor, yCoor + 15);
-                  
-                  ctx.restore();
                 }
               }
             }
@@ -297,6 +283,42 @@ export default {
               }
               
               ctx.restore();
+            }
+          }, {
+            id: 'dashedBorder',
+            beforeDraw(chart) {
+              const { ctx } = chart;
+              const meta = chart.getDatasetMeta(0);
+              
+              // 只處理預計差異部分（索引1）
+              if (meta.data[1]) {
+                const arc = meta.data[1];
+                
+                // 保存原始繪圖設置
+                ctx.save();
+                
+                // 清除原始繪製的部分
+                ctx.globalCompositeOperation = 'destination-out';
+                arc.draw(ctx);
+                ctx.globalCompositeOperation = 'source-over';
+                
+                // 設置虛線樣式
+                ctx.setLineDash([3, 3]);
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = 'rgba(54, 162, 235, 0.8)';
+                
+                // 繪製虛線邊框和填充
+                ctx.beginPath();
+                arc.draw(ctx);
+                ctx.stroke();
+                
+                // 使用半透明填充
+                ctx.fillStyle = 'rgba(54, 162, 235, 0.2)';
+                ctx.fill();
+                
+                // 恢復原始設置
+                ctx.restore();
+              }
             }
           }]
         });
@@ -779,6 +801,107 @@ export default {
 .status-ontrack {
   background-color: rgba(255, 193, 7, 0.2);
   color: #f57f17;
+}
+
+.realtime-message {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #e8f5e9;
+  border-radius: 8px;
+  color: #2e7d32;
+  display: flex;
+  align-items: center;
+  animation: fadeIn 0.5s ease;
+}
+
+.message-icon {
+  margin-right: 8px;
+  font-size: 1.2rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 專案狀態樣式 */
+.project-status {
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.progress-diff {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.status-ahead .progress-diff {
+  color: #1b5e20;
+}
+
+.status-behind .progress-diff {
+  color: #b71c1c;
+}
+
+.status-ontrack .progress-diff {
+  color: #e65100;
+}
+
+/* 確保日期項目在同一行 */
+.detail-item.date-item {
+  grid-column: span 2;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.detail-item.date-item .detail-value {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.detail-label {
+  color: #666;
+  flex-shrink: 0; /* 防止標籤被壓縮 */
+  margin-right: 5px; /* 與值之間的間距 */
+}
+
+.detail-value {
+  font-weight: 500;
+  color: #333;
+  text-overflow: ellipsis; /* 文字溢出時顯示省略號 */
+  overflow: hidden; /* 隱藏溢出內容 */
+}
+
+/* 特別處理日期項目 */
+.detail-item.date-item {
+  grid-column: span 2; /* 日期項目橫跨兩列 */
+}
+
+/* 自定義捲動軸樣式 */
+.projects-charts-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.projects-charts-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.projects-charts-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.projects-charts-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .realtime-message {
