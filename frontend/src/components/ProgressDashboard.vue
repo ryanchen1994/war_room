@@ -80,6 +80,7 @@ import axios from 'axios'
 import { io } from 'socket.io-client'
 import { Chart } from 'chart.js/auto'
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { API_BASE_URL, SOCKET_URL, SOCKET_OPTIONS, fetchWithRetry } from '@/config/api.config'
 
 export default {
   name: 'ProgressDashboard',
@@ -146,7 +147,7 @@ export default {
         if (isNaN(date.getTime())) return '日期格式錯誤';
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       } catch (e) {
-        console.error('日期格式化錯誤:', e);
+        //console.error('日期格式化錯誤:', e);
         return '日期錯誤';
       }
     }
@@ -401,31 +402,48 @@ export default {
       }
     };
 
+
     const fetchProgress = async () => {
       try {
-        console.log('開始獲取進度數據...');
-        const response = await axios.get('http://localhost:5000/api/remar-data');
+        //console.log('開始獲取進度數據...');
+        const response = await fetchWithRetry(`${API_BASE_URL}/api/remar-data`);
         
-        if (Array.isArray(response.data)) {
-          progressData.value = response.data.map(project => {
+        // 檢查回應格式
+        //console.log('API 回應:', response);  // 除錯用
+        
+        // 判斷資料格式並處理
+        let dataArray = [];
+        if (response && typeof response === 'object') {
+          if (Array.isArray(response)) {
+            dataArray = response;
+          } else if (Array.isArray(response.data)) {
+            dataArray = response.data;
+          } else if (typeof response.data === 'object' && !Array.isArray(response.data)) {
+            // 如果是單一物件，轉換成陣列
+            dataArray = [response.data];
+          }
+        }
+
+        if (dataArray.length > 0) {
+          progressData.value = dataArray.map(project => {
             // 確保數值型別正確
-            project.PWORK_DAY = parseInt(project.PWORK_DAY) || 0;
-            project.AWORK_DAY = parseInt(project.AWORK_DAY) || 0;
-            project.PPER = parseFloat(parseFloat(project.PPER).toFixed(3)) || 0; // 限制小數點後3位
-            project.APER = parseFloat(parseFloat(project.APER).toFixed(3)) || 0; // 限制小數點後3位
-            project.PMDAY = parseInt(project.PMDAY) || 0;
-            project.YPPER = parseFloat(parseFloat(project.YPPER).toFixed(3)) || 0; // 限制小數點後3位
-            
-            return project;
+            return {
+              ...project,
+              PWORK_DAY: parseInt(project.PWORK_DAY) || 0,
+              AWORK_DAY: parseInt(project.AWORK_DAY) || 0,
+              PPER: parseFloat(parseFloat(project.PPER || 0).toFixed(3)) || 0,
+              APER: parseFloat(parseFloat(project.APER || 0).toFixed(3)) || 0,
+              PMDAY: parseInt(project.PMDAY) || 0,
+              YPPER: parseFloat(parseFloat(project.YPPER || 0).toFixed(3)) || 0
+            };
           });
-          
+
           // 延遲更新圖表，確保 DOM 已更新
           setTimeout(() => {
             updateProjectCharts();
           }, 100);
         } else {
-          console.error('API 返回的數據不是數組格式:', response.data);
-          // 使用模擬數據
+          console.warn('API 未返回有效數據，使用模擬數據');
           progressData.value = generateMockData();
           setTimeout(() => {
             updateProjectCharts();
@@ -534,35 +552,29 @@ export default {
     }
 
     onMounted(() => {
-      // 延遲初始化，確保 DOM 已完全渲染
       setTimeout(() => {
         fetchProgress();
-        // 設置輪詢間隔
         intervalId = setInterval(fetchProgress, 30000);
         
-        // 設置 Socket.IO
-        socket = io('http://localhost:5000');
-        socket.on('connect', () => {
-          console.log('已連線到 Socket.IO 伺服器');
-        });
-        socket.on('update', (data) => {
-          socketMessage.value = data.message;
-          fetchProgress();
-        });
+        // 移除 Socket.IO 相關代碼，因為目前不需要實時更新
+        // socket = io(SOCKET_URL);
+        // socket.on('connect', () => {});
+        // socket.on('update', (data) => {
+        //   socketMessage.value = data.message;
+        //   fetchProgress();
+        // });
         
-        // 添加窗口大小變化監聽器
         window.addEventListener('resize', () => {
-          // 簡化 resize 處理邏輯
           setTimeout(() => {
             updateProjectCharts();
           }, 200);
         });
       }, 500);
-    })
+    });
 
     onBeforeUnmount(() => {
       if (intervalId) clearInterval(intervalId);
-      if (socket) socket.disconnect();
+      // if (socket) socket.disconnect();  // 移除這行
       charts.forEach(chart => {
         if (chart) chart.destroy();
       });
