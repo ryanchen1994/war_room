@@ -20,7 +20,7 @@ app.config.from_object(Config)
 # 設置 HTTP Basic Auth
 auth = HTTPBasicAuth()
 
-# 設置用戶名和密碼 (實際應用中應存儲在數據庫或配置文件中)
+# 設置用户名和密碼 (實際應用中應存儲在數據庫或配置文件中)
 users = {
     "admin": generate_password_hash("thm")
 }
@@ -297,10 +297,10 @@ def background_thread():
 
 @socketio.on('connect')
 def handle_connect():
-    print('客戶端已連線')
+    print('客户端已連線')
 
 
-# 为了向後兼容，保留原有的路由
+# 為了向後兼容，保留原有的路由
 @app.route('/api/progress', methods=['GET'])
 @auth.login_required
 def get_progress():

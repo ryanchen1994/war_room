@@ -22,7 +22,7 @@
       </div>
     </div>
     
-    <!-- 進度誤差說明 -->
+    <!-- 進度誤差説明 -->
     <div class="progress-note">
       <span class="note-icon">ℹ️</span>
       <span class="note-text">預期與實際進度誤差<0.01%，視為符合進度</span>
@@ -405,19 +405,27 @@ export default {
 
     const fetchProgress = async () => {
       try {
-        //console.log('開始獲取進度數據...');
-        const response = await fetchWithRetry(`${API_BASE_URL}/api/remar-data`);
+        // 設定 API 請求的身分驗證資訊
+        const authConfig = {
+          auth: {
+            username: 'admin', // 使用配置的用户名
+            password: 'thm' // 使用配置的密碼
+          },
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        };
+
+        // 使用 axios 直接請求，以便傳遞身分驗證資訊
+        const response = await axios.get(`${API_BASE_URL}/api/remar`, authConfig);
         
         // 檢查回應格式
-        //console.log('API 回應:', response);  // 除錯用
-        
-        // 判斷資料格式並處理
         let dataArray = [];
-        if (response && typeof response === 'object') {
-          if (Array.isArray(response)) {
-            dataArray = response;
-          } else if (Array.isArray(response.data)) {
+        if (response && response.data) {
+          if (Array.isArray(response.data)) {
             dataArray = response.data;
+          } else if (Array.isArray(response.data.data)) {
+            dataArray = response.data.data;
           } else if (typeof response.data === 'object' && !Array.isArray(response.data)) {
             // 如果是單一物件，轉換成陣列
             dataArray = [response.data];
@@ -556,14 +564,6 @@ export default {
         fetchProgress();
         intervalId = setInterval(fetchProgress, 30000);
         
-        // 移除 Socket.IO 相關代碼，因為目前不需要實時更新
-        // socket = io(SOCKET_URL);
-        // socket.on('connect', () => {});
-        // socket.on('update', (data) => {
-        //   socketMessage.value = data.message;
-        //   fetchProgress();
-        // });
-        
         window.addEventListener('resize', () => {
           setTimeout(() => {
             updateProjectCharts();
@@ -619,7 +619,7 @@ export default {
   flex-shrink: 0; /* 防止摘要卡片被壓縮 */
 }
 
-/* 進度誤差說明樣式 */
+/* 進度誤差説明樣式 */
 .progress-note {
   display: flex;
   align-items: center;
@@ -650,7 +650,7 @@ export default {
   overflow-y: auto; /* 添加垂直捲動軸 */
   padding-right: 5px; /* 為捲動軸預留空間 */
   flex-grow: 1;
-  max-height: calc(100% - 150px); /* 調整最大高度，為新增的說明文字留出空間 */
+  max-height: calc(100% - 150px); /* 調整最大高度，為新增的説明文字留出空間 */
 }
 
 .project-chart-card {
@@ -820,7 +820,7 @@ export default {
   font-size: 0.75rem; /* 減小字體大小 */
 }
 
-/* 添加媒體查詢，確保在不同屏幕尺寸下的響應式布局 */
+/* 添加媒體查詢，確保在不同屏幕尺寸下的響應式佈局 */
 @media (min-width: 1400px) {
   .projects-charts-container {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
