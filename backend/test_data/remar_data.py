@@ -12,7 +12,7 @@ def get_test_data():
         config = json.load(f)
     
     # 檢查是否啟用測試資料
-    if config.get('enable_test_data') != 'Y':
+    if config.get('enable_test_data') != 'N':
         return None
         
     data = config.get('test_data', {})

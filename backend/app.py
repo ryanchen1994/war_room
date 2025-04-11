@@ -40,8 +40,8 @@ authorizations = {
     }
 }
 
-api = Api(app, version='1.0', title='工程進度 API',
-          description='工程進度監控系統 API 文檔',
+api = Api(app, version='1.0', title='戰情室 API',
+          description='建設公司戰情室 API 文檔',
           doc='/api/docs',
           authorizations=authorizations,
           security='basicAuth')
@@ -49,7 +49,7 @@ api = Api(app, version='1.0', title='工程進度 API',
 # 創建命名空間
 ns_progress = api.namespace('progress', description='工程進度相關操作')
 ns_performance = api.namespace('performance', description='績效指標相關操作')
-ns_remar = api.namespace('remar', description='Remar 數據相關操作')
+ns_remar = api.namespace('remar', description='工程進度相關操作')
 
 CORS(app, resources={
     r"/*": {
@@ -103,7 +103,7 @@ progress_model = api.model('Progress', {
     'COP_NO': fields.String(description='公司編號')
 })
 
-remar_model = api.model('RemarData', {
+remar_model = api.model('Remar', {
     'PROJM_NO': fields.String(description='專案編號'),
     'PROJM_NAME': fields.String(description='專案名稱'),
     'BUILD_REM202': fields.String(description='進度狀態'),
@@ -251,7 +251,7 @@ class RemarData(Resource):
     @ns_remar.marshal_list_with(remar_model)
     @auth.login_required
     def get(self):
-        """獲取 Remar 數據"""
+        """取得工程日報數據"""
         try:
             conn = get_db_connection()
             cursor = conn.cursor()

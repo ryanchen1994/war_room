@@ -8,4 +8,4 @@ WHERE r.COP_NO IN ('HG','HM')
       WHERE r2.PROJM_NO = r.PROJM_NO
         AND r2.COP_NO IN ('HG','HM')
   )
-ORDER BY r.PROJM_NO ASC;  -- 加入排序
+ORDER BY r.PROJM_NO ASC;
