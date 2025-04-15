@@ -9,4 +9,10 @@ class Config:
     SQL_PASSWORD = os.environ.get('SQL_PASSWORD', 'YourStrongPassword!')
     SQL_DRIVER = os.environ.get('SQL_DRIVER', 'ODBC Driver 17 for SQL Server')
 
-    DEBUG = True
+    ENV = os.environ.get('FLASK_ENV', 'development')
+    
+    # 開發環境特定設定
+    if ENV == 'development':
+        DEBUG = True
+    else:
+        DEBUG = False

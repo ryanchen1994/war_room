@@ -40,29 +40,51 @@ authorizations = {
     }
 }
 
-api = Api(app, version='1.0', title='戰情室 API',
+# api = Api(app, version='1.0', title='工程進度 API',
+#           description='工程進度監控系統 API 文檔',
+#           doc='/api/docs',
+#           authorizations=authorizations,
+#           security='basicAuth')
+
+api = Api(app, version='1.0', 
+          title='戰情室 API',
           description='建設公司戰情室 API 文檔',
           doc='/api/docs',
           authorizations=authorizations,
-          security='basicAuth')
+          security='basicAuth',
+          prefix='/api'  # 新增 API 前綴
+)
 
 # 創建命名空間
 ns_progress = api.namespace('progress', description='工程進度相關操作')
 ns_performance = api.namespace('performance', description='績效指標相關操作')
-ns_remar = api.namespace('remar', description='工程進度相關操作')
+ns_remar = api.namespace('remar', description='Remar 數據相關操作')
 
+# CORS 設定
 CORS(app, resources={
-    r"/*": {
-        "origins": "*",  # 允許所有來源
+    r"/api/*": {
+        "origins": ["https://war-room.thm.com.tw", "http://localhost:5173"] if app.config.get('ENV') == 'development' else ["https://war-room.thm.com.tw"],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+        "supports_credentials": True,
+        "expose_headers": ["WWW-Authenticate"]  # 確保 Basic 認證正常工作
     }
 })
 
-# 修改 Socket.IO 設定
+# 修改認證錯誤處理
+@auth.error_handler
+def auth_error(status):
+    return jsonify({
+        "error": "Unauthorized",
+        "message": "請先登入系統"
+    }), 401, {
+        'WWW-Authenticate': 'Basic realm="Login Required"'
+    }
+
+# Socket.IO 設定
 socketio = SocketIO(
     app,
-    cors_allowed_origins="*",
+    cors_allowed_origins=["https://war-room.thm.com.tw"],
     async_mode='eventlet',
     ping_timeout=30,
     ping_interval=15,
@@ -103,7 +125,7 @@ progress_model = api.model('Progress', {
     'COP_NO': fields.String(description='公司編號')
 })
 
-remar_model = api.model('Remar', {
+remar_model = api.model('RemarData', {
     'PROJM_NO': fields.String(description='專案編號'),
     'PROJM_NAME': fields.String(description='專案名稱'),
     'BUILD_REM202': fields.String(description='進度狀態'),
@@ -251,7 +273,7 @@ class RemarData(Resource):
     @ns_remar.marshal_list_with(remar_model)
     @auth.login_required
     def get(self):
-        """取得工程日報數據"""
+        """獲取 Remar 數據"""
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -319,16 +341,19 @@ def get_performance_data():
     resource = Performance()
     return jsonify(resource.get())
 
-@app.route('/api/remar', methods=['GET'])
+@app.route('/remar', methods=['GET'])
 @auth.login_required
 def get_remar_data():
     resource = RemarData()
     return jsonify(resource.get())
 
 if __name__ == '__main__':
-    # 啟動背景執行緒
     thread = threading.Thread(target=background_thread)
     thread.daemon = True
     thread.start()
     
-    app.run(host='0.0.0.0', port=5000)
+    app.run(
+        host='0.0.0.0',
+        port=5000,
+        ssl_context=None  # 移除 SSL 設定，由 Nginx 處理
+    )

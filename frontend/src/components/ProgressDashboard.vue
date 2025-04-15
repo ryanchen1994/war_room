@@ -76,11 +76,10 @@
 </template>
 
 <script>
-import axios from 'axios'
 import { io } from 'socket.io-client'
 import { Chart } from 'chart.js/auto'
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
-import { API_BASE_URL, SOCKET_URL, SOCKET_OPTIONS, fetchWithRetry } from '@/config/api.config'
+import { API_BASE_URL, SOCKET_URL, SOCKET_OPTIONS, apiClient } from '@/config/api.config'
 
 export default {
   name: 'ProgressDashboard',
@@ -405,19 +404,7 @@ export default {
 
     const fetchProgress = async () => {
       try {
-        // 設定 API 請求的身分驗證資訊
-        const authConfig = {
-          auth: {
-            username: 'admin', // 使用配置的用户名
-            password: 'thm' // 使用配置的密碼
-          },
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        };
-
-        // 使用 axios 直接請求，以便傳遞身分驗證資訊
-        const response = await axios.get(`${API_BASE_URL}/api/remar`, authConfig);
+        const response = await apiClient.get('/remar')
         
         // 檢查回應格式
         let dataArray = [];
@@ -427,14 +414,12 @@ export default {
           } else if (Array.isArray(response.data.data)) {
             dataArray = response.data.data;
           } else if (typeof response.data === 'object' && !Array.isArray(response.data)) {
-            // 如果是單一物件，轉換成陣列
             dataArray = [response.data];
           }
         }
 
         if (dataArray.length > 0) {
           progressData.value = dataArray.map(project => {
-            // 確保數值型別正確
             return {
               ...project,
               PWORK_DAY: parseInt(project.PWORK_DAY) || 0,
@@ -446,7 +431,6 @@ export default {
             };
           });
 
-          // 延遲更新圖表，確保 DOM 已更新
           setTimeout(() => {
             updateProjectCharts();
           }, 100);
@@ -459,7 +443,6 @@ export default {
         }
       } catch (error) {
         console.error('獲取進度數據失敗:', error);
-        // 使用模擬數據
         progressData.value = generateMockData();
         setTimeout(() => {
           updateProjectCharts();
