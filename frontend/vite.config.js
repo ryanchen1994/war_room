@@ -6,7 +6,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/',  // 基礎路徑保持為根目錄
+  base: '/war_room/',  // 基礎路徑保持為根目錄
   plugins: [
     vue(),
     vueDevTools(),
